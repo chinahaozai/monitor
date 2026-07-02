@@ -600,6 +600,34 @@
       letter-spacing: 0.02em;
     }
 
+    /* 数据新鲜度徽标:极细描边 + 柔和底,跟随 Linear 克制基调。
+       用状态语义色(green/amber/red/faint),不与红涨绿跌的数据方向色冲突。 */
+    .fresh-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.01em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .fresh-badge::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .fresh-live   { color: var(--green); border-color: rgba(5, 150, 105, 0.28);  background: rgba(5, 150, 105, 0.07); }
+    .fresh-warn   { color: var(--amber); border-color: rgba(217, 119, 6, 0.28);  background: rgba(217, 119, 6, 0.08); }
+    .fresh-stale  { color: var(--red);   border-color: rgba(220, 38, 38, 0.28);  background: rgba(220, 38, 38, 0.07); }
+    .fresh-sample { color: var(--faint); border-color: var(--line);              background: rgba(148, 163, 184, 0.08); }
+    /* 主图副标题旁的新鲜度徽标:与副标题基线对齐,留一点间距 */
+    #mainTrendFresh { margin-top: 6px; }
+
     .trend-value {
       margin-top: 10px;
       display: flex;
@@ -1221,6 +1249,7 @@
             <div class="chart-title">
               <h2 id="mainTrendTitle">趋势监控</h2>
               <p id="mainTrendSub">订单、租金、价格和资本开支的边际变化</p>
+              <span id="mainTrendFresh" class="fresh-badge" hidden></span>
             </div>
             <select id="trendSelect" aria-label="趋势指标"></select>
           </div>
@@ -1540,6 +1569,11 @@
 
     let state = loadState();
 
+    // 实时数据的运行时元信息(数据新鲜度)。刻意独立于 state:
+    // 绝不进 localStorage / 导出 JSON,否则会污染用户数据并被 mergeTrends 回灌。
+    // isLive=null 表示尚未尝试拉取;true=实时采样成功;false=已回退示例数据。
+    const liveMeta = { "gpu-rent": { isLive: null, updatedAt: null, source: null } };
+
     function loadState() {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return structuredClone(defaultState);
@@ -1647,6 +1681,35 @@
       }
     }
 
+    // 把 ISO 时间戳换成相对口径("12 分钟前 / 3 小时前 / 2 天前")
+    function relativeTime(iso) {
+      const then = new Date(iso).getTime();
+      if (!Number.isFinite(then)) return "";
+      const mins = Math.max(0, Math.round((Date.now() - then) / 60000));
+      if (mins < 1) return "刚刚";
+      if (mins < 60) return mins + " 分钟前";
+      const hrs = Math.round(mins / 60);
+      if (hrs < 24) return hrs + " 小时前";
+      return Math.round(hrs / 24) + " 天前";
+    }
+
+    // 数据新鲜度 → 语义色档位。采样每 6h 一次,故 >12h(丢两拍)转黄、>24h(丢四拍)转红。
+    // 返回 tone class(复用红/黄/绿语义色)+ 文案,供主图新鲜度标签渲染。
+    const FRESH_WARN_H = 12;
+    const FRESH_STALE_H = 24;
+    function freshnessInfo(id) {
+      const meta = liveMeta[id];
+      if (!meta || meta.isLive === null) return null; // 未尝试拉取(如非实时源)
+      if (meta.isLive === false) return { tone: "sample", text: "示例数据" };
+      const ageMs = Date.now() - new Date(meta.updatedAt).getTime();
+      if (!Number.isFinite(ageMs)) return { tone: "live", text: "实时采样" };
+      const ageH = ageMs / 3600000;
+      const rel = relativeTime(meta.updatedAt);
+      if (ageH > FRESH_STALE_H) return { tone: "stale", text: "数据可能中断 · " + rel };
+      if (ageH > FRESH_WARN_H) return { tone: "warn", text: "更新滞后 · " + rel };
+      return { tone: "live", text: "实时 · " + rel };
+    }
+
     function renderTrends() {
       if (!state.trends.some((trend) => trend.id === state.selectedTrendId)) {
         state.selectedTrendId = state.trends[0]?.id || "";
@@ -1658,7 +1721,17 @@
       `).join("");
 
       document.getElementById("mainTrendTitle").textContent = selected?.title || "趋势监控";
-      document.getElementById("mainTrendSub").textContent = selected?.source || "订单、租金、价格和资本开支的边际变化";
+      const subText = selected?.source || "订单、租金、价格和资本开支的边际变化";
+      const fresh = selected ? freshnessInfo(selected.id) : null;
+      const freshEl = document.getElementById("mainTrendFresh");
+      document.getElementById("mainTrendSub").textContent = subText;
+      if (fresh) {
+        freshEl.textContent = fresh.text;
+        freshEl.className = "fresh-badge fresh-" + fresh.tone;
+        freshEl.hidden = false;
+      } else {
+        freshEl.hidden = true;
+      }
       document.getElementById("trendLatest").textContent = selected ? formatTrendValue(selected, latestValue(selected)) : "--";
       document.getElementById("trendChange").textContent = selected ? formatTrendChange(selected) : "--";
       document.getElementById("trendChange").className = trendChangeClass(selected);
@@ -1673,6 +1746,7 @@
               <div class="trend-meta">
                 <span class="badge ${statusClass(trend.status)}">${statusLabel(trend.status)}</span>
                 <span class="unit">${escapeHtml(trend.unit)}</span>
+                ${(() => { const f = freshnessInfo(trend.id); return f ? `<span class="fresh-badge fresh-${f.tone}">${escapeHtml(f.text)}</span>` : ""; })()}
               </div>
               <div class="trend-value">
                 <strong>${formatTrendValue(trend, latest)}</strong>
@@ -2193,21 +2267,29 @@
       try {
         const res = await fetch("/api/trends", { signal: controller.signal });
         clearTimeout(timer);
-        if (!res.ok) return;
+        if (!res.ok) return markSampleFallback();
         const data = await res.json();
         const live = data["gpu-rent"];
-        if (!live || !Array.isArray(live.values) || !live.values.length) return;
+        if (!live || !Array.isArray(live.values) || !live.values.length) return markSampleFallback();
         const trend = state.trends.find((t) => t.id === "gpu-rent");
-        if (!trend) return;
+        if (!trend) return markSampleFallback();
         trend.labels = live.labels;
         trend.values = live.values;
         if (live.source) trend.source = live.source;
+        liveMeta["gpu-rent"] = { isLive: true, updatedAt: live.updatedAt || null, source: live.source || null };
         renderTrends();
         requestAnimationFrame(drawAllCharts);
       } catch {
         clearTimeout(timer);
-        // 代理未启动或网络失败:保持示例数据,不打扰用户
+        // 接口不可用或网络失败:明确回退到示例数据,并如实标注(不伪装成实时)
+        markSampleFallback();
       }
+    }
+
+    // 未取到实时数据时,把 gpu-rent 标为示例回退态,让 UI 显式提示而非静默伪装
+    function markSampleFallback() {
+      liveMeta["gpu-rent"] = { isLive: false, updatedAt: null, source: null };
+      renderTrends();
     }
     hydrateFromApi();
   </script>
