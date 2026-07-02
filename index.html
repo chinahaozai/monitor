@@ -4,22 +4,47 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI 硬信号监控台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
     :root {
-      --bg: #f6f7f9;
+      /* 冷白底色系(Linear 风)*/
+      --bg: #fbfcfd;
+      --bg-tint: #f4f6f8;
       --surface: #ffffff;
-      --surface-2: #eef2f6;
-      --line: #d8dee7;
-      --text: #152033;
-      --muted: #667085;
-      --blue: #2364aa;
-      --green: #157f55;
-      --amber: #b46b00;
-      --red: #c3342b;
-      --purple: #6b4ca3;
-      --shadow: 0 10px 24px rgba(16, 24, 40, 0.08);
-      --radius: 8px;
+      --surface-warm: #fafbfc;
+      --surface-2: #f5f7f9;
+      --line: #e9ebf0;
+      --line-strong: #dde0e7;
+      /* slate 石板文字系 */
+      --text: #0f172a;
+      --ink-2: #334155;
+      --muted: #64748b;
+      --faint: #94a3b8;
+      /* 数据语义色:红涨绿跌,黄灯观察 */
+      --blue: #2563eb;
+      --green: #059669;
+      --amber: #d97706;
+      --red: #dc2626;
+      --purple: #7c3aed;
+      /* 靛蓝品牌强调(非状态场景专用) */
+      --accent: #4f46e5;
+      --accent-bright: #6366f1;
+      --accent-deep: #4338ca;
+      --accent-soft: rgba(79, 70, 229, 0.08);
+      --accent-line: rgba(79, 70, 229, 0.28);
+      /* 字体 */
+      --font-display: "Geist", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      --font-mono: "Geist Mono", "SF Mono", ui-monospace, "Menlo", monospace;
+      /* 极柔冷调阴影 */
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.05);
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.06);
+      --shadow-lg: 0 4px 10px rgba(15, 23, 42, 0.05), 0 12px 32px rgba(15, 23, 42, 0.09);
+      --radius: 10px;
+      --radius-sm: 7px;
     }
 
     * {
@@ -30,8 +55,15 @@
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-      letter-spacing: 0;
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      letter-spacing: -0.006em;
+      background-image:
+        radial-gradient(1200px 600px at 100% -8%, rgba(79, 70, 229, 0.045), transparent 62%),
+        radial-gradient(900px 500px at 0% 0%, rgba(37, 99, 235, 0.025), transparent 55%);
+      background-attachment: fixed;
     }
 
     button, input, select, textarea {
@@ -48,6 +80,8 @@
     }
 
     .app {
+      position: relative;
+      z-index: 1;
       min-height: 100vh;
       display: grid;
       grid-template-rows: auto 1fr;
@@ -57,15 +91,24 @@
       position: sticky;
       top: 0;
       z-index: 20;
-      background: rgba(255, 255, 255, 0.94);
+      background: rgba(251, 252, 253, 0.8);
       border-bottom: 1px solid var(--line);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+    }
+
+    .topbar::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-deep), var(--accent-bright) 45%, var(--blue) 100%);
     }
 
     .topbar-inner {
-      max-width: 1440px;
+      max-width: 1480px;
       margin: 0 auto;
-      padding: 12px 20px;
+      padding: 15px 28px;
       display: grid;
       grid-template-columns: minmax(220px, 1fr) auto;
       gap: 16px;
@@ -74,23 +117,68 @@
 
     .brand {
       min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .brand h1 {
       margin: 0;
-      font-size: 20px;
-      line-height: 1.25;
-      font-weight: 760;
+      font-family: var(--font-display);
+      font-size: 22px;
+      line-height: 1.1;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--text);
+    }
+
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      background: linear-gradient(150deg, var(--accent-bright), var(--accent-deep));
+      display: grid;
+      place-items: center;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      flex: none;
+    }
+
+    .brand-mark::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 2.5px;
+      background: #fff;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
     }
 
     .brand-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px 14px;
-      margin-top: 4px;
+      gap: 6px 12px;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11.5px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.01em;
     }
+
+    .brand-meta > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .brand-meta > span::before {
+      content: "";
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0.55;
+    }
+
+    #saveLabel::before { background: var(--green) !important; }
 
     .toolbar {
       display: flex;
@@ -100,46 +188,58 @@
     }
 
     .icon-button, .text-button {
-      height: 34px;
-      border: 1px solid var(--line);
+      height: 36px;
+      border: 1px solid var(--line-strong);
       background: var(--surface);
-      color: var(--text);
-      border-radius: 7px;
+      color: var(--ink-2);
+      border-radius: var(--radius-sm);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
       cursor: pointer;
-      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
       white-space: nowrap;
     }
 
     .icon-button {
-      width: 36px;
+      width: 38px;
       padding: 0;
     }
 
     .text-button {
-      padding: 0 10px;
+      padding: 0 12px;
     }
 
     .icon-button:hover, .text-button:hover {
-      border-color: #98a2b3;
-      background: #fafbfc;
+      border-color: var(--accent-line);
+      background: var(--accent-soft);
+      color: var(--accent-deep);
+      transform: translateY(-1px);
+    }
+
+    .icon-button:active, .text-button:active {
+      transform: translateY(0);
+    }
+
+    .icon-button i, .text-button i {
+      width: 16px;
+      height: 16px;
     }
 
     .main {
-      max-width: 1440px;
+      max-width: 1480px;
       width: 100%;
       margin: 0 auto;
-      padding: 18px 20px 28px;
+      padding: 22px 28px 40px;
     }
 
     .summary-grid {
       display: grid;
-      grid-template-columns: 1.1fr repeat(4, minmax(140px, 0.6fr));
-      gap: 12px;
-      margin-bottom: 14px;
+      grid-template-columns: 1.5fr repeat(4, minmax(132px, 0.6fr));
+      gap: 14px;
+      margin-bottom: 22px;
     }
 
     .summary-card, .panel, .signal-card, .chart-panel, .trend-card {
@@ -149,28 +249,90 @@
       box-shadow: var(--shadow);
     }
 
+    /* 计数卡片:轻量,次要 */
     .summary-card {
-      min-height: 104px;
-      padding: 14px;
+      position: relative;
+      min-height: 118px;
+      padding: 16px 16px 14px;
       display: grid;
       align-content: space-between;
-      gap: 10px;
+      gap: 8px;
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
 
+    .summary-card:not(.risk-card)::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      left: 0;
+      width: 3px;
+      height: 22px;
+      border-radius: 0 3px 3px 0;
+      background: var(--muted);
+    }
+
+    .summary-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .summary-card.tone-red::before { background: var(--red); }
+    .summary-card.tone-yellow::before { background: var(--amber); }
+    .summary-card.tone-watch::before { background: var(--blue); }
+    .summary-card.tone-green::before { background: var(--green); }
+
+    /* 风险主卡:焦点,深色反白,占据视觉重心 */
     .risk-card {
       grid-template-columns: 1fr auto;
       align-items: center;
+      background:
+        radial-gradient(150% 130% at 100% 0%, rgba(99, 102, 241, 0.22), transparent 55%),
+        linear-gradient(158deg, #1e293b 0%, #0f172a 100%);
+      border-color: #1e293b;
+      color: #e2e8f0;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .risk-card .summary-label {
+      color: var(--accent-bright);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+    }
+
+    .risk-word {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 38px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      margin: 6px 0 8px;
+      color: #f8fafc;
+    }
+
+    .risk-card .summary-foot {
+      color: #94a3b8;
+      font-size: 12.5px;
+      max-width: 30ch;
     }
 
     .summary-label {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
 
     .summary-value {
-      font-size: 30px;
-      line-height: 1;
-      font-weight: 780;
+      font-family: var(--font-mono);
+      font-size: 38px;
+      line-height: 0.9;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
     }
 
     .summary-foot {
@@ -180,36 +342,44 @@
     }
 
     .risk-meter {
-      width: 116px;
-      height: 116px;
+      position: relative;
+      width: 124px;
+      height: 124px;
       border-radius: 50%;
       display: grid;
       place-items: center;
-      background: conic-gradient(var(--green) 0deg, var(--amber) 120deg, var(--red) 240deg, var(--green) 360deg);
-      padding: 8px;
+      padding: 9px;
     }
 
     .risk-meter-inner {
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background: var(--surface);
+      background: linear-gradient(158deg, #1e293b, #0f172a);
       display: grid;
       place-items: center;
       text-align: center;
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.45);
     }
 
     .risk-text {
-      font-size: 24px;
-      font-weight: 800;
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 600;
+      color: #f8fafc;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
     }
 
     .risk-sub {
       display: block;
-      margin-top: 2px;
-      color: var(--muted);
-      font-size: 11px;
+      margin-top: 1px;
+      color: var(--accent-bright);
+      font-size: 9.5px;
       font-weight: 500;
+      font-family: var(--font-mono);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
     }
 
     .filters {
@@ -220,20 +390,60 @@
       align-items: center;
     }
 
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 32px 2px 14px;
+    }
+
+    .section-head .idx {
+      width: 3px;
+      height: 16px;
+      border-radius: 2px;
+      background: var(--accent);
+      flex: none;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--text);
+    }
+
+    .section-head .sub {
+      color: var(--muted);
+      font-size: 12.5px;
+      margin-left: auto;
+      text-align: right;
+      max-width: 42ch;
+      line-height: 1.4;
+    }
+
+    .section-head .rule {
+      flex: 1;
+      height: 1px;
+      align-self: center;
+      background: linear-gradient(90deg, var(--line-strong), transparent);
+    }
+
     .trend-board {
       display: grid;
       grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-      gap: 14px;
+      gap: 16px;
       margin-bottom: 14px;
       align-items: stretch;
     }
 
     .chart-panel {
       min-height: 360px;
-      padding: 14px;
+      padding: 18px;
       display: grid;
       grid-template-rows: auto 1fr auto;
-      gap: 10px;
+      gap: 14px;
     }
 
     .chart-header {
@@ -245,23 +455,29 @@
 
     .chart-title h2 {
       margin: 0;
-      font-size: 16px;
-      line-height: 1.3;
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
     }
 
     .chart-title p {
-      margin: 4px 0 0;
+      margin: 5px 0 0;
       color: var(--muted);
       font-size: 12px;
       line-height: 1.4;
+      font-family: var(--font-mono);
+      letter-spacing: -0.01em;
     }
 
     .chart-canvas-wrap {
       position: relative;
-      min-height: 242px;
+      min-height: 250px;
       border: 1px solid var(--line);
-      border-radius: 7px;
-      background: #fbfcfd;
+      border-radius: var(--radius-sm);
+      background:
+        linear-gradient(180deg, var(--surface), var(--surface-2));
       overflow: hidden;
     }
 
@@ -271,66 +487,101 @@
     }
 
     #mainTrendCanvas {
-      height: 242px;
+      height: 250px;
+      cursor: crosshair;
     }
 
     .chart-foot {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
+      gap: 10px;
     }
 
     .mini-stat {
+      position: relative;
       border: 1px solid var(--line);
-      border-radius: 7px;
-      padding: 8px;
-      min-height: 58px;
-      background: #fbfcfd;
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      min-height: 60px;
+      background: var(--surface-warm);
     }
 
     .mini-stat span {
       display: block;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 10px;
       line-height: 1.3;
+      font-family: var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .mini-stat strong {
       display: block;
-      margin-top: 4px;
-      font-size: 15px;
+      margin-top: 5px;
+      font-size: 16px;
       line-height: 1.2;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
     }
 
     .trend-stack {
       display: grid;
-      gap: 10px;
+      gap: 12px;
     }
 
     .trend-card {
-      padding: 12px;
+      position: relative;
+      padding: 13px 14px 13px 17px;
       display: grid;
       grid-template-columns: minmax(0, 1fr) 118px;
       gap: 10px;
       min-height: 106px;
       cursor: pointer;
-      transition: border-color 0.15s ease, transform 0.15s ease;
+      overflow: hidden;
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
     }
 
+    .trend-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--line-strong);
+      transition: background 0.18s ease;
+    }
+
+    .trend-card.tone-red::before { background: var(--red); }
+    .trend-card.tone-yellow::before { background: var(--amber); }
+    .trend-card.tone-watch::before { background: var(--blue); }
+    .trend-card.tone-green::before { background: var(--green); }
+
     .trend-card:hover {
-      border-color: #98a2b3;
-      transform: translateY(-1px);
+      border-color: var(--line-strong);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
     }
 
     .trend-card.active {
-      border-color: rgba(35, 100, 170, 0.65);
-      box-shadow: 0 0 0 3px rgba(35, 100, 170, 0.12), var(--shadow);
+      border-color: var(--accent-line);
+      box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
+    }
+
+    .trend-card.active::before {
+      width: 4px;
+      background: var(--accent);
     }
 
     .trend-card h3 {
       margin: 0;
       font-size: 14px;
+      font-weight: 600;
       line-height: 1.35;
+      letter-spacing: -0.01em;
     }
 
     .trend-meta {
@@ -340,6 +591,13 @@
       margin-top: 8px;
       color: var(--muted);
       font-size: 12px;
+      align-items: center;
+    }
+
+    .trend-meta .unit {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.02em;
     }
 
     .trend-value {
@@ -350,8 +608,12 @@
     }
 
     .trend-value strong {
-      font-size: 22px;
+      font-family: var(--font-mono);
+      font-size: 23px;
+      font-weight: 600;
       line-height: 1;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
     }
 
     .trend-value span {
@@ -360,7 +622,10 @@
     }
 
     .trend-change {
-      font-weight: 720;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
     }
 
     .trend-change.up { color: var(--red); }
@@ -375,10 +640,10 @@
     }
 
     .sparkline {
-      height: 70px;
+      height: 72px;
       border: 1px solid var(--line);
-      border-radius: 7px;
-      background: #fbfcfd;
+      border-radius: var(--radius-sm);
+      background: var(--surface-warm);
     }
 
     .trend-table {
@@ -397,7 +662,7 @@
     }
 
     .trend-table th, .trend-table td {
-      padding: 10px 12px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--line);
       text-align: left;
       vertical-align: top;
@@ -405,9 +670,26 @@
 
     .trend-table th {
       color: var(--muted);
-      font-size: 12px;
-      font-weight: 680;
-      background: #fbfcfd;
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: var(--surface-2);
+    }
+
+    .trend-table td:nth-child(2),
+    .trend-table td:nth-child(3) {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .trend-table tbody tr {
+      transition: background 0.15s ease;
+    }
+
+    .trend-table tbody tr:hover {
+      background: var(--accent-soft);
     }
 
     .trend-table tr:last-child td {
@@ -431,29 +713,36 @@
 
     .search-wrap input {
       width: 100%;
-      height: 38px;
-      border: 1px solid var(--line);
-      border-radius: 7px;
-      padding: 0 12px 0 34px;
+      height: 40px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-sm);
+      padding: 0 12px 0 36px;
       background: var(--surface);
       color: var(--text);
       outline: none;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
+    .search-wrap input::placeholder { color: var(--faint); }
+
     .search-wrap input:focus, select:focus, textarea:focus, input[type="date"]:focus {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(35, 100, 170, 0.14);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
     }
 
     select, input[type="date"] {
-      height: 38px;
+      height: 40px;
       min-width: 138px;
-      border: 1px solid var(--line);
-      border-radius: 7px;
-      padding: 0 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-sm);
+      padding: 0 12px;
       background: var(--surface);
       color: var(--text);
       outline: none;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
     .layout {
@@ -466,15 +755,38 @@
     .signal-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      gap: 14px;
     }
 
     .signal-card {
+      position: relative;
       min-height: 278px;
-      padding: 14px;
+      padding: 16px 16px 14px;
       display: grid;
       grid-template-rows: auto auto auto 1fr auto;
-      gap: 10px;
+      gap: 11px;
+      overflow: hidden;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .signal-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 3px;
+      background: var(--line-strong);
+      transition: background 0.18s ease;
+    }
+
+    .signal-card.tone-red::before { background: linear-gradient(90deg, var(--red), #ef4444); }
+    .signal-card.tone-yellow::before { background: linear-gradient(90deg, var(--amber), #f59e0b); }
+    .signal-card.tone-watch::before { background: linear-gradient(90deg, var(--blue), #3b82f6); }
+    .signal-card.tone-green::before { background: linear-gradient(90deg, var(--green), #10b981); }
+
+    .signal-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--line-strong);
     }
 
     .signal-head {
@@ -490,15 +802,20 @@
 
     .signal-title h2 {
       margin: 0;
+      font-family: var(--font-display);
       font-size: 16px;
-      line-height: 1.35;
+      font-weight: 600;
+      line-height: 1.28;
+      letter-spacing: -0.01em;
     }
 
     .signal-title p {
-      margin: 4px 0 0;
+      margin: 5px 0 0;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11.5px;
       line-height: 1.4;
+      font-family: var(--font-mono);
+      letter-spacing: -0.01em;
     }
 
     .badge-row {
@@ -511,60 +828,80 @@
       display: inline-flex;
       align-items: center;
       min-height: 22px;
-      padding: 2px 7px;
+      padding: 2px 9px;
       border-radius: 999px;
-      border: 1px solid var(--line);
+      border: 1px solid var(--line-strong);
       background: var(--surface-2);
-      color: var(--text);
-      font-size: 12px;
+      color: var(--ink-2);
+      font-size: 11.5px;
+      font-weight: 500;
       white-space: nowrap;
     }
 
-    .badge.layer-capex { border-color: rgba(35, 100, 170, 0.3); color: var(--blue); background: rgba(35, 100, 170, 0.08); }
-    .badge.layer-chip { border-color: rgba(107, 76, 163, 0.3); color: var(--purple); background: rgba(107, 76, 163, 0.08); }
-    .badge.layer-cloud { border-color: rgba(21, 127, 85, 0.3); color: var(--green); background: rgba(21, 127, 85, 0.08); }
-    .badge.layer-chain { border-color: rgba(180, 107, 0, 0.3); color: var(--amber); background: rgba(180, 107, 0, 0.08); }
-    .badge.layer-ashare { border-color: rgba(195, 52, 43, 0.25); color: var(--red); background: rgba(195, 52, 43, 0.07); }
+    .badge.layer-capex { border-color: rgba(37, 99, 235, 0.28); color: var(--blue); background: rgba(37, 99, 235, 0.07); }
+    .badge.layer-chip { border-color: rgba(124, 58, 237, 0.28); color: var(--purple); background: rgba(124, 58, 237, 0.07); }
+    .badge.layer-cloud { border-color: rgba(5, 150, 105, 0.28); color: var(--green); background: rgba(5, 150, 105, 0.07); }
+    .badge.layer-chain { border-color: rgba(217, 119, 6, 0.28); color: var(--amber); background: rgba(217, 119, 6, 0.07); }
+    .badge.layer-ashare { border-color: rgba(220, 38, 38, 0.25); color: var(--red); background: rgba(220, 38, 38, 0.06); }
 
     .status-select {
       min-width: 106px;
       height: 34px;
-      font-weight: 680;
+      font-weight: 600;
     }
 
-    .status-green { color: var(--green); border-color: rgba(21, 127, 85, 0.35); background: rgba(21, 127, 85, 0.08); }
-    .status-yellow { color: var(--amber); border-color: rgba(180, 107, 0, 0.38); background: rgba(180, 107, 0, 0.09); }
-    .status-red { color: var(--red); border-color: rgba(195, 52, 43, 0.35); background: rgba(195, 52, 43, 0.08); }
-    .status-watch { color: var(--blue); border-color: rgba(35, 100, 170, 0.3); background: rgba(35, 100, 170, 0.08); }
+    .status-green { color: var(--green); border-color: rgba(5, 150, 105, 0.32); background: rgba(5, 150, 105, 0.07); }
+    .status-yellow { color: var(--amber); border-color: rgba(217, 119, 6, 0.34); background: rgba(217, 119, 6, 0.08); }
+    .status-red { color: var(--red); border-color: rgba(220, 38, 38, 0.32); background: rgba(220, 38, 38, 0.07); }
+    .status-watch { color: var(--blue); border-color: rgba(37, 99, 235, 0.28); background: rgba(37, 99, 235, 0.07); }
 
     .metric-list {
       display: grid;
-      gap: 7px;
-      font-size: 13px;
+      gap: 8px;
+      font-size: 12.5px;
       line-height: 1.45;
+      padding: 11px 12px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
     }
 
     .metric {
       display: grid;
-      grid-template-columns: 88px 1fr;
-      gap: 8px;
+      grid-template-columns: 62px 1fr;
+      gap: 10px;
     }
 
     .metric span:first-child {
       color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding-top: 2px;
     }
+
+    .metric strong { font-weight: 600; }
 
     .note-area {
       width: 100%;
-      min-height: 68px;
+      min-height: 62px;
       resize: vertical;
       border: 1px solid var(--line);
-      border-radius: 7px;
-      padding: 8px;
-      color: var(--text);
-      background: #fbfcfd;
+      border-radius: var(--radius-sm);
+      padding: 9px 10px;
+      color: var(--ink-2);
+      background: var(--surface-warm);
       outline: none;
-      line-height: 1.45;
+      line-height: 1.5;
+      font-size: 12.5px;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    .note-area::placeholder { color: var(--faint); }
+
+    .note-area:focus {
+      background: var(--surface);
     }
 
     .signal-foot {
@@ -580,17 +917,48 @@
     .source-links {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
+    }
+
+    .source-links a {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      padding: 2px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .source-links a:hover {
+      text-decoration: none;
+      color: var(--accent-deep);
+      border-color: var(--accent-line);
+      background: var(--accent-soft);
     }
 
     .panel {
-      padding: 14px;
-      margin-bottom: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
     }
 
     .panel h2 {
-      margin: 0 0 10px;
+      margin: 0 0 12px;
+      font-family: var(--font-display);
       font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .panel h2::before {
+      content: "";
+      width: 3px;
+      height: 14px;
+      border-radius: 2px;
+      background: var(--accent);
     }
 
     .rule-list, .queue-list {
@@ -616,19 +984,19 @@
     .rule-kicker {
       display: inline-flex;
       align-items: center;
-      min-width: 58px;
-      height: 22px;
-      padding: 0 7px;
+      min-width: 52px;
+      height: 21px;
+      padding: 0 8px;
       border-radius: 999px;
-      margin-right: 6px;
-      font-size: 12px;
-      font-weight: 720;
+      margin-right: 7px;
+      font-size: 11px;
+      font-weight: 600;
       border: 1px solid var(--line);
     }
 
-    .rule-kicker.red { color: var(--red); background: rgba(195, 52, 43, 0.08); border-color: rgba(195, 52, 43, 0.3); }
-    .rule-kicker.yellow { color: var(--amber); background: rgba(180, 107, 0, 0.09); border-color: rgba(180, 107, 0, 0.34); }
-    .rule-kicker.green { color: var(--green); background: rgba(21, 127, 85, 0.08); border-color: rgba(21, 127, 85, 0.3); }
+    .rule-kicker.red { color: var(--red); background: rgba(220, 38, 38, 0.07); border-color: rgba(220, 38, 38, 0.28); }
+    .rule-kicker.yellow { color: var(--amber); background: rgba(217, 119, 6, 0.08); border-color: rgba(217, 119, 6, 0.32); }
+    .rule-kicker.green { color: var(--green); background: rgba(5, 150, 105, 0.07); border-color: rgba(5, 150, 105, 0.28); }
 
     .watch-row {
       display: grid;
@@ -648,6 +1016,41 @@
 
     .hidden {
       display: none !important;
+    }
+
+    /* 入场动画:staggered 淡入上移 */
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .main > .summary-grid,
+    .main > .section-head,
+    .main > .trend-board,
+    .main > .trend-table,
+    .main > .filters,
+    .main > .layout {
+      opacity: 0;
+      animation: rise 0.62s cubic-bezier(0.22, 0.68, 0.28, 1) forwards;
+    }
+
+    .main > .summary-grid { animation-delay: 0.04s; }
+    .main > .section-head:nth-of-type(1) { animation-delay: 0.1s; }
+    .main > .trend-board { animation-delay: 0.15s; }
+    .main > .section-head:nth-of-type(2) { animation-delay: 0.2s; }
+    .main > .trend-table { animation-delay: 0.25s; }
+    .main > .section-head:nth-of-type(3) { animation-delay: 0.3s; }
+    .main > .filters { animation-delay: 0.35s; }
+    .main > .layout { animation-delay: 0.4s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .main > * {
+        opacity: 1 !important;
+        animation: none !important;
+      }
+      * {
+        transition: none !important;
+      }
     }
 
     @media (max-width: 1120px) {
@@ -749,6 +1152,7 @@
     <header class="topbar">
       <div class="topbar-inner">
         <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
           <h1>AI 硬信号监控台</h1>
           <div class="brand-meta">
             <span id="todayLabel"></span>
@@ -770,10 +1174,10 @@
         <article class="summary-card risk-card">
           <div>
             <div class="summary-label">综合风险</div>
-            <div class="summary-value" id="riskWord">观察</div>
+            <div class="risk-word" id="riskWord">观察</div>
             <div class="summary-foot" id="riskReason">等待信号更新</div>
           </div>
-          <div class="risk-meter" aria-hidden="true">
+          <div class="risk-meter" id="riskMeter" aria-hidden="true">
             <div class="risk-meter-inner">
               <div>
                 <span class="risk-text" id="riskScore">0</span>
@@ -782,27 +1186,34 @@
             </div>
           </div>
         </article>
-        <article class="summary-card">
-          <div class="summary-label">红灯</div>
+        <article class="summary-card tone-red">
+          <div class="summary-label">红灯 / RED</div>
           <div class="summary-value" id="redCount">0</div>
           <div class="summary-foot">硬信号恶化</div>
         </article>
-        <article class="summary-card">
-          <div class="summary-label">黄灯</div>
+        <article class="summary-card tone-yellow">
+          <div class="summary-label">黄灯 / WARN</div>
           <div class="summary-value" id="yellowCount">0</div>
           <div class="summary-foot">边际转弱</div>
         </article>
-        <article class="summary-card">
-          <div class="summary-label">观察</div>
+        <article class="summary-card tone-watch">
+          <div class="summary-label">观察 / WATCH</div>
           <div class="summary-value" id="watchCount">0</div>
           <div class="summary-foot">等待确认</div>
         </article>
-        <article class="summary-card">
-          <div class="summary-label">绿灯</div>
+        <article class="summary-card tone-green">
+          <div class="summary-label">绿灯 / OK</div>
           <div class="summary-value" id="greenCount">0</div>
           <div class="summary-foot">需求仍稳</div>
         </article>
       </section>
+
+      <div class="section-head">
+        <span class="idx" aria-hidden="true"></span>
+        <h2>趋势监控</h2>
+        <span class="rule"></span>
+        <span class="sub">订单、租金、价格与资本开支的边际变化</span>
+      </div>
 
       <section class="trend-board" aria-label="趋势监控">
         <article class="chart-panel">
@@ -835,6 +1246,13 @@
         <div class="trend-stack" id="trendStack" aria-label="趋势指标卡片"></div>
       </section>
 
+      <div class="section-head">
+        <span class="idx" aria-hidden="true"></span>
+        <h2>指标明细</h2>
+        <span class="rule"></span>
+        <span class="sub">各硬信号最新读数与触发口径</span>
+      </div>
+
       <section class="trend-table" aria-label="趋势数据表">
         <table>
           <thead>
@@ -849,6 +1267,13 @@
           <tbody id="trendTableBody"></tbody>
         </table>
       </section>
+
+      <div class="section-head">
+        <span class="idx" aria-hidden="true"></span>
+        <h2>信号清单</h2>
+        <span class="rule"></span>
+        <span class="sub" id="visibleLabelBig"></span>
+      </div>
 
       <section class="filters" aria-label="筛选">
         <div class="search-wrap">
@@ -1212,6 +1637,14 @@
       document.getElementById("riskScore").textContent = normalized;
       document.getElementById("riskWord").textContent = word;
       document.getElementById("riskReason").textContent = reason;
+
+      const arcColor = normalized >= 58 ? "#f87171" : normalized >= 35 ? "#fbbf24" : "#34d399";
+      const angle = Math.round((normalized / 100) * 360);
+      const meter = document.getElementById("riskMeter");
+      if (meter) {
+        meter.style.background =
+          `conic-gradient(${arcColor} ${angle}deg, rgba(255,255,255,0.09) ${angle}deg 360deg)`;
+      }
     }
 
     function renderTrends() {
@@ -1234,12 +1667,12 @@
       document.getElementById("trendStack").innerHTML = state.trends.map((trend) => {
         const latest = latestValue(trend);
         return `
-          <article class="trend-card ${trend.id === state.selectedTrendId ? "active" : ""}" data-trend-card="${trend.id}">
+          <article class="trend-card tone-${trend.status} ${trend.id === state.selectedTrendId ? "active" : ""}" data-trend-card="${trend.id}">
             <div>
               <h3>${escapeHtml(trend.title)}</h3>
               <div class="trend-meta">
                 <span class="badge ${statusClass(trend.status)}">${statusLabel(trend.status)}</span>
-                <span>${escapeHtml(trend.unit)}</span>
+                <span class="unit">${escapeHtml(trend.unit)}</span>
               </div>
               <div class="trend-value">
                 <strong>${formatTrendValue(trend, latest)}</strong>
@@ -1309,6 +1742,10 @@
       return trend ? "trend-change " + trendMoveClass(trend) : "trend-change flat";
     }
 
+    const MONO_FONT = '"IBM Plex Mono", "SF Mono", ui-monospace, monospace';
+    let mainHoverIndex = null;
+    let mainChartGeo = null;
+
     function drawAllCharts() {
       const selected = getTrend(state.selectedTrendId);
       if (selected) drawLineChart(document.getElementById("mainTrendCanvas"), selected, { compact: false });
@@ -1318,10 +1755,37 @@
       });
     }
 
+    // Catmull-Rom 平滑:沿点序列描出圆润曲线(不含 beginPath/stroke)
+    function traceSmooth(ctx, pts) {
+      if (pts.length < 2) return;
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1] || pts[i];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[i + 2] || p2;
+        const cp1x = p1.x + (p2.x - p0.x) / 6;
+        const cp1y = p1.y + (p2.y - p0.y) / 6;
+        const cp2x = p2.x - (p3.x - p1.x) / 6;
+        const cp2y = p2.y - (p3.y - p1.y) / 6;
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+      }
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
     function drawLineChart(canvas, trend, options) {
       const rect = canvas.getBoundingClientRect();
       const cssWidth = Math.max(1, rect.width);
-      const cssHeight = options.compact ? 70 : 242;
+      const cssHeight = options.compact ? 72 : 250;
       const dpr = window.devicePixelRatio || 1;
       canvas.width = Math.round(cssWidth * dpr);
       canvas.height = Math.round(cssHeight * dpr);
@@ -1333,25 +1797,32 @@
       const minRaw = Math.min(...values);
       const maxRaw = Math.max(...values);
       const span = Math.max(0.01, maxRaw - minRaw);
-      const pad = options.compact ? { top: 10, right: 10, bottom: 12, left: 10 } : { top: 22, right: 24, bottom: 34, left: 46 };
-      const min = minRaw - span * 0.16;
-      const max = maxRaw + span * 0.16;
+      const pad = options.compact
+        ? { top: 9, right: 9, bottom: 9, left: 9 }
+        : { top: 26, right: 54, bottom: 30, left: 46 };
+      const min = minRaw - span * 0.18;
+      const max = maxRaw + span * 0.18;
       const plotW = cssWidth - pad.left - pad.right;
       const plotH = cssHeight - pad.top - pad.bottom;
-      const accent = trendMoveClass(trend) === "down" ? "#157f55" : "#c3342b";
-      const grid = "#e5eaf1";
+      const baseY = pad.top + plotH;
+      const isDown = trendMoveClass(trend) === "down";
+      const accent = isDown ? "#059669" : "#dc2626";
+      const accentRGB = isDown ? "5, 150, 105" : "220, 38, 38";
 
       const point = (value, index) => {
         const x = pad.left + (plotW * index) / Math.max(1, values.length - 1);
         const y = pad.top + plotH - ((value - min) / (max - min)) * plotH;
         return { x, y };
       };
+      const pts = values.map((v, i) => point(v, i));
 
+      // 网格 + 坐标轴(仅主图)
       if (!options.compact) {
-        ctx.strokeStyle = grid;
+        ctx.strokeStyle = "rgba(15, 23, 42, 0.06)";
         ctx.lineWidth = 1;
-        ctx.fillStyle = "#667085";
-        ctx.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "11px " + MONO_FONT;
+        ctx.textBaseline = "middle";
         for (let i = 0; i < 4; i++) {
           const y = pad.top + (plotH * i) / 3;
           ctx.beginPath();
@@ -1359,38 +1830,164 @@
           ctx.lineTo(cssWidth - pad.right, y);
           ctx.stroke();
           const labelValue = max - ((max - min) * i) / 3;
-          ctx.fillText(formatTrendValue(trend, labelValue), 8, y + 4);
+          ctx.textAlign = "left";
+          ctx.fillText(formatTrendValue(trend, labelValue), 6, y);
         }
+        ctx.textBaseline = "alphabetic";
+        ctx.textAlign = "center";
         trend.labels.forEach((label, index) => {
           if (index % Math.ceil(trend.labels.length / 5) !== 0 && index !== trend.labels.length - 1) return;
-          const { x } = point(values[index], index);
-          ctx.fillText(label, Math.max(4, x - 15), cssHeight - 12);
+          const x = Math.min(cssWidth - pad.right, Math.max(pad.left, pts[index].x));
+          ctx.fillText(label, x, cssHeight - 10);
         });
       }
 
+      // 渐变面积填充
+      const grad = ctx.createLinearGradient(0, pad.top, 0, baseY);
+      grad.addColorStop(0, `rgba(${accentRGB}, ${options.compact ? 0.2 : 0.26})`);
+      grad.addColorStop(1, `rgba(${accentRGB}, 0)`);
       ctx.beginPath();
-      values.forEach((value, index) => {
-        const { x, y } = point(value, index);
-        if (index === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.strokeStyle = accent;
-      ctx.lineWidth = options.compact ? 2 : 2.5;
-      ctx.stroke();
+      traceSmooth(ctx, pts);
+      ctx.lineTo(pts[pts.length - 1].x, baseY);
+      ctx.lineTo(pts[0].x, baseY);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
 
+      // 平滑主线
+      ctx.beginPath();
+      traceSmooth(ctx, pts);
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = options.compact ? 2 : 2.6;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
       if (!options.compact) {
-        const last = point(values[values.length - 1], values.length - 1);
-        ctx.fillStyle = accent;
-        values.forEach((value, index) => {
-          const { x, y } = point(value, index);
-          ctx.beginPath();
-          ctx.arc(x, y, index === values.length - 1 ? 4 : 3, 0, Math.PI * 2);
-          ctx.fill();
-        });
-        ctx.fillStyle = "#152033";
-        ctx.font = "600 12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-        ctx.fillText(formatTrendValue(trend, latestValue(trend)), Math.min(cssWidth - 58, last.x + 8), Math.max(18, last.y - 8));
+        ctx.shadowColor = `rgba(${accentRGB}, 0.28)`;
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 3;
       }
+      ctx.stroke();
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      // 末点强调
+      const last = pts[pts.length - 1];
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.arc(last.x, last.y, options.compact ? 2.6 : 4, 0, Math.PI * 2);
+      ctx.fill();
+      if (!options.compact) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+        ctx.stroke();
+        // 末值标注
+        ctx.fillStyle = accent;
+        ctx.font = "600 12px " + MONO_FONT;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(formatTrendValue(trend, latestValue(trend)), Math.min(cssWidth - 6, last.x + 10), last.y);
+        ctx.textBaseline = "alphabetic";
+
+        mainChartGeo = { pts, pad, plotW, cssWidth, cssHeight, baseY, accent, accentRGB, trend };
+        if (mainHoverIndex != null && pts[mainHoverIndex]) {
+          drawHover(ctx, mainHoverIndex);
+        }
+      }
+    }
+
+    function drawHover(ctx, index) {
+      const geo = mainChartGeo;
+      if (!geo) return;
+      const p = geo.pts[index];
+      const trend = geo.trend;
+      // 十字准线
+      ctx.save();
+      ctx.strokeStyle = "rgba(15, 23, 42, 0.24)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(p.x, geo.pad.top);
+      ctx.lineTo(p.x, geo.baseY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // 高亮点(晕圈 + 白描边)
+      ctx.fillStyle = `rgba(${geo.accentRGB}, 0.16)`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = geo.accent;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2);
+      ctx.stroke();
+      // tooltip
+      const label = trend.labels[index] || "";
+      const valueText = formatTrendValue(trend, trend.values[index]) + " " + trend.unit;
+      ctx.font = "600 12px " + MONO_FONT;
+      const vW = ctx.measureText(valueText).width;
+      ctx.font = "11px " + MONO_FONT;
+      const lW = ctx.measureText(label).width;
+      const boxW = Math.max(vW, lW) + 20;
+      const boxH = 40;
+      let bx = p.x + 14;
+      if (bx + boxW > geo.cssWidth - 4) bx = p.x - boxW - 14;
+      let by = p.y - boxH - 10;
+      if (by < geo.pad.top) by = p.y + 12;
+      roundRect(ctx, bx, by, boxW, boxH, 8);
+      ctx.fillStyle = "rgba(15, 23, 42, 0.96)";
+      ctx.fill();
+      ctx.strokeStyle = `rgba(${geo.accentRGB}, 0.55)`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "11px " + MONO_FONT;
+      ctx.fillText(label, bx + 10, by + 13);
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "600 12px " + MONO_FONT;
+      ctx.fillText(valueText, bx + 10, by + 28);
+      ctx.textBaseline = "alphabetic";
+      ctx.restore();
+    }
+
+    function setupChartHover() {
+      const canvas = document.getElementById("mainTrendCanvas");
+      if (!canvas || canvas.dataset.hoverBound) return;
+      canvas.dataset.hoverBound = "1";
+      const locate = (event) => {
+        const geo = mainChartGeo;
+        if (!geo) return null;
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        let nearest = 0;
+        let best = Infinity;
+        geo.pts.forEach((pt, i) => {
+          const d = Math.abs(pt.x - x);
+          if (d < best) { best = d; nearest = i; }
+        });
+        return nearest;
+      };
+      canvas.addEventListener("mousemove", (event) => {
+        const idx = locate(event);
+        if (idx == null || idx === mainHoverIndex) return;
+        mainHoverIndex = idx;
+        const selected = getTrend(state.selectedTrendId);
+        if (selected) drawLineChart(canvas, selected, { compact: false });
+      });
+      canvas.addEventListener("mouseleave", () => {
+        if (mainHoverIndex == null) return;
+        mainHoverIndex = null;
+        const selected = getTrend(state.selectedTrendId);
+        if (selected) drawLineChart(canvas, selected, { compact: false });
+      });
     }
 
     function renderSignals() {
@@ -1402,7 +1999,7 @@
         const trend = getTrend(signal.trendId);
         const sources = signal.sources.map(([label, url]) => `<a href="${url}" target="_blank" rel="noreferrer">${label}</a>`).join("");
         return `
-          <article class="signal-card" data-id="${signal.id}">
+          <article class="signal-card tone-${signal.status}" data-id="${signal.id}">
             <div class="signal-head">
               <div class="signal-title">
                 <h2>${escapeHtml(signal.title)}</h2>
@@ -1497,6 +2094,7 @@
 
     document.getElementById("trendSelect").addEventListener("change", (event) => {
       state.selectedTrendId = event.target.value;
+      mainHoverIndex = null;
       saveState();
       renderTrends();
       requestAnimationFrame(drawAllCharts);
@@ -1506,6 +2104,7 @@
       const card = event.target.closest("[data-trend-card]");
       if (!card) return;
       state.selectedTrendId = card.dataset.trendCard;
+      mainHoverIndex = null;
       saveState();
       renderTrends();
       requestAnimationFrame(drawAllCharts);
@@ -1584,6 +2183,7 @@
     });
 
     render();
+    setupChartHover();
   </script>
 </body>
 </html>
