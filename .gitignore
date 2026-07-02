@@ -2,4 +2,5 @@
 work/
 outputs/
 *.log
-data/
+.wrangler/
+.dev.vars

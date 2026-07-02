@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai-signal-monitor",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-07-02",
+  // 静态资源:只托管 public/(该公开的页面),避免把源码/配置一并公开托管,
+  // 也避免监视根目录下不断变化的 .wrangler/ 产物导致 dev 无限热重载。
+  // run_worker_first 只让 /api/* 进 worker.mjs,其余路径由资源层直接服务,同源无 CORS。
+  "assets": {
+    "directory": "./public/",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  // GPU 租金历史时序。部署前先 `npx wrangler kv namespace create MONITOR_KV`,
+  // 把返回的 id 回填到下面(占位符会导致 deploy 失败,这是刻意的安全护栏)。
+  "kv_namespaces": [
+    { "binding": "MONITOR_KV", "id": "7301d086ff3c4da8923a11b93db2299b" }
+  ],
+  // 每 6 小时采样一次;分钟取 3 避开整点,减少与全网 cron 撞点。
+  "triggers": {
+    "crons": ["3 */6 * * *"]
+  },
+  "observability": { "enabled": true }
+}

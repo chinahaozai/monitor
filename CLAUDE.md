@@ -42,8 +42,23 @@
 
 ## 本地验证
 
+纯前端预览(改视觉时够用):
+
 ```bash
 python3 -m http.server 8765   # 然后访问 http://localhost:8765/
 ```
 
+带实时数据(改 Worker/采样逻辑时):
+
+```bash
+npx wrangler dev              # 起本地 Worker,内置 KV 模拟,访问 http://localhost:8787/
+# curl http://localhost:8787/api/trends           # 看接口返回
+# npx wrangler dev --test-scheduled 后 curl "http://localhost:8787/__scheduled"  # 手动触发采样
+```
+
 UI 改动后应在浏览器实跑验证(可用 headless Chrome + CDP 截图并检查无 console 错误),不要只靠读代码下结论。
+
+## 数据与部署边界
+
+- 采样与托管都在单个 Cloudflare Worker(`worker.mjs`):`fetch` 处理 `/api/trends`、`/api/sample`,`scheduled` 每 6h 采样写 KV;`index.html` 由 assets 层托管。配置在 `wrangler.jsonc`。
+- 只有 GPU 租金接了实时数据源(Vast.ai / RunPod),其余信号仍为手动维护。改数据源改 `worker.mjs`,不要动前端 `state/render/mergeTrends`。

@@ -34,25 +34,36 @@ AI 产业链的股价波动经常被几个问题驱动：
 python3 -m http.server 8765
 ```
 
-### 方式二:带实时数据代理(推荐)
+### 方式二:带实时数据(本地 Worker)
 
-启动零依赖的 Node 代理，页面会自动拉取实时 GPU 租金：
+用 Cloudflare 的 `wrangler` 在本地起 Worker，页面会自动拉取实时 GPU 租金：
 
 ```bash
-node proxy.mjs
+npx wrangler dev   # 首次会自动下载 wrangler，随后访问 http://localhost:8787/
 ```
 
-然后访问：
+本地 `wrangler dev` 内置 KV 模拟，可直接调 `curl http://localhost:8787/api/trends` 看接口。若接口无数据，页面会自动回退到内置示例数据，不影响使用。
 
-```text
-http://localhost:8765/
+### 方式三:部署到 Cloudflare(常驻、免费、不休眠)
+
+采样逻辑与页面托管都在单个 Worker（`worker.mjs`），由 `scheduled` 定时器每 6 小时自动采样一次并写入 KV，无需自备服务器：
+
+```bash
+npx wrangler login                              # 浏览器授权(需免费 Cloudflare 账号)
+npx wrangler kv namespace create MONITOR_KV     # 拿到 id 回填 wrangler.jsonc
+npx wrangler secret put SAMPLE_TOKEN            # 设手动采样接口的校验令牌
+npx wrangler deploy                             # 部署,得到 *.workers.dev 地址
 ```
 
-代理会常驻运行，每 6 小时自动采样一次云 GPU 租金并累积历史时序（写入 `data/history.json`，该目录不入库）。若代理未启动，页面会自动回退到内置示例数据，不影响使用。
+部署后可立即播种第一个数据点（否则要等下一个 cron 周期）：
+
+```bash
+curl -X POST "https://<你的地址>.workers.dev/api/sample?token=<SAMPLE_TOKEN>"
+```
 
 ## 数据说明
 
-GPU 租金一项已接入真实数据源（Vast.ai / RunPod 的公开 H100 定价，取代表值中位数）。由于数据源只提供当下快照、且不向浏览器开放跨域访问，趋势时序由本地代理逐次采样自行累积——刚启动时只有一个数据点，随运行时间增长逐步形成完整曲线。
+GPU 租金一项已接入真实数据源（Vast.ai / RunPod 的公开 H100 定价，取代表值中位数）。由于数据源只提供当下快照、且不向浏览器开放跨域访问，趋势时序由 Worker 每 6 小时采样一次自行累积（存入 Cloudflare KV）——刚部署时只有一个数据点，随运行时间增长逐步形成完整曲线。
 
 其余信号（大厂 capex、芯片/HBM、光模块/PCB、A股验证等）当前仍为示例或手动维护数据，后续可逐步接入公司 IR 财报、公告、调研纪要、台股月营收和 A股公告等自动数据源。
 
