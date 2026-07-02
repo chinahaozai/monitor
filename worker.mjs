@@ -67,8 +67,10 @@ async function fetchVast() {
 // 与 gpu-rent 不同,Yahoo 一次给完整历史序列,无需 KV 累积。
 // Cloudflare Cache API 缓存 6h,避免每次页面访问都外呼。
 // 所有股票信号(TSMC 2330.TW、NVDA…)共用此函数,只换 symbol/source。
-async function fetchYahooStock(symbol, source, decimals = 2) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=3mo`;
+// range: Yahoo 区间(1mo/3mo/6mo/1y/2y…);points: 降采样后的目标点数。
+// 1 年约 250 个交易日,降采样到 ~52 个点即周度密度,曲线有厚度又不过密。
+async function fetchYahooStock(symbol, source, decimals = 2, range = "1y", points = 52) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${encodeURIComponent(range)}`;
   const data = await fetchWithRetry(
     url,
     {
@@ -81,19 +83,18 @@ async function fetchYahooStock(symbol, source, decimals = 2) {
   const ts = r?.timestamp;
   const close = r?.indicators?.quote?.[0]?.close;
   if (!Array.isArray(ts) || !Array.isArray(close) || !ts.length) return null;
-  // 过滤 close=null(停牌日) + 只保留最近 ~8 周(约 40 交易日),做周度降采样
+  // 过滤 close=null(停牌日)
   const pairs = ts.map((t, i) => [t, close[i]]).filter(([, c]) => typeof c === "number");
   if (!pairs.length) return null;
-  const recent = pairs.slice(-40);
-  // 简单降采样:每 5 个取 1(约周度)得 8 个点,再确保最后一天是最新点
-  const step = Math.max(1, Math.floor(recent.length / 8));
+  // 等距降采样到 points 个,并确保末点(最新)一定入选
+  const step = Math.max(1, Math.floor(pairs.length / points));
   const picked = [];
-  for (let i = recent.length - 1; i >= 0 && picked.length < 8; i -= step) picked.unshift(recent[i]);
+  for (let i = pairs.length - 1; i >= 0 && picked.length < points; i -= step) picked.unshift(pairs[i]);
   return {
     labels: picked.map(([t]) => toLabel(new Date(t * 1000).toISOString())),
     values: picked.map(([, c]) => Number(c.toFixed(decimals))),
     source,
-    updatedAt: new Date(recent[recent.length - 1][0] * 1000).toISOString(),
+    updatedAt: new Date(pairs[pairs.length - 1][0] * 1000).toISOString(),
   };
 }
 

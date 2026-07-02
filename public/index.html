@@ -2357,7 +2357,9 @@
     // 只在内存态覆盖图形部分,不写 localStorage(避免污染用户导出)。
     async function hydrateFromApi() {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
+      // 15s:Worker 冷启动 + 多个 Yahoo 外呼(TSMC + NVDA,1 年区间),
+      // 5s 会在冷缓存/慢网时超时,导致整体降级。宁可等,别误报回退。
+      const timer = setTimeout(() => controller.abort(), 15000);
       try {
         const res = await fetch("/api/trends", { signal: controller.signal });
         clearTimeout(timer);
