@@ -63,6 +63,39 @@ async function fetchVast() {
   return { median: Number(m.toFixed(3)), count: prices.length };
 }
 
+// ---------- 数据源 C:Yahoo Finance TSMC(2330.TW)日频股价时序 ----------
+// 与 gpu-rent 不同,Yahoo 一次给完整历史序列,无需 KV 累积。
+// Cloudflare Cache API 缓存 6h,避免每次页面访问都外呼。
+async function fetchTsmcStock() {
+  const url = "https://query1.finance.yahoo.com/v8/finance/chart/2330.TW?interval=1d&range=3mo";
+  const data = await fetchWithRetry(
+    url,
+    {
+      headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 (compatible; monitor/1.0)" },
+      cf: { cacheTtl: 21600, cacheEverything: true }, // 6h 边缘缓存
+    },
+    "Yahoo TSMC"
+  );
+  const r = data?.chart?.result?.[0];
+  const ts = r?.timestamp;
+  const close = r?.indicators?.quote?.[0]?.close;
+  if (!Array.isArray(ts) || !Array.isArray(close) || !ts.length) return null;
+  // 过滤 close=null(停牌日) + 只保留最近 ~8 周(约 40 交易日),做周度降采样
+  const pairs = ts.map((t, i) => [t, close[i]]).filter(([, c]) => typeof c === "number");
+  if (!pairs.length) return null;
+  const recent = pairs.slice(-40);
+  // 简单降采样:每 5 个取 1(约周度)得 8 个点,再确保最后一天是最新点
+  const step = Math.max(1, Math.floor(recent.length / 8));
+  const picked = [];
+  for (let i = recent.length - 1; i >= 0 && picked.length < 8; i -= step) picked.unshift(recent[i]);
+  return {
+    labels: picked.map(([t]) => toLabel(new Date(t * 1000).toISOString())),
+    values: picked.map(([, c]) => Number(c.toFixed(2))),
+    source: "Yahoo Finance TSMC 2330.TW 日频",
+    updatedAt: new Date(recent[recent.length - 1][0] * 1000).toISOString(),
+  };
+}
+
 // ---------- 数据源 B:RunPod H100 SXM secure 价 ----------
 async function fetchRunpod() {
   const data = await fetchWithRetry(
@@ -159,8 +192,15 @@ export default {
 
     if (url.pathname === "/api/trends") {
       try {
-        const history = await loadHistory(env);
-        return new Response(JSON.stringify(buildTrends(history)), { headers: JSON_HEADERS });
+        // 两源并发:gpu-rent 从 KV(6h 采样累积)、tsmc-stock 从 Yahoo(边缘缓存)
+        // 任一失败不影响另一个,前端会静默降级到该 trend 的示例数据。
+        const [history, tsmc] = await Promise.all([
+          loadHistory(env),
+          fetchTsmcStock().catch(() => null),
+        ]);
+        const payload = { ...buildTrends(history) };
+        if (tsmc) payload["tsmc-stock"] = tsmc;
+        return new Response(JSON.stringify(payload), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
       }

@@ -1387,6 +1387,17 @@
           values: [3.92, 3.88, 3.83, 3.79, 3.71, 3.66, 3.58, 3.52]
         },
         {
+          id: "tsmc-stock",
+          title: "TSMC 股价(2330.TW)",
+          unit: "新台币",
+          direction: "down-bad",
+          status: "watch",
+          source: "Yahoo Finance 日频",
+          trigger: "跌破关键均线且成交放量,或财报后大幅回调",
+          labels: ["W-7", "W-6", "W-5", "W-4", "W-3", "W-2", "W-1", "本周"],
+          values: [1080, 1095, 1110, 1140, 1155, 1170, 1200, 1230]
+        },
+        {
           id: "hyperscaler-capex",
           title: "云厂商 AI capex 指引",
           unit: "指数",
@@ -1463,6 +1474,22 @@
           cadence: "财报季",
           sources: [
             ["Nvidia IR", "https://investor.nvidia.com/financial-info/financial-reports/default.aspx"]
+          ]
+        },
+        {
+          id: "tsmc-market-signal",
+          layer: "chip",
+          trendId: "tsmc-stock",
+          title: "TSMC 股价与市场信号",
+          company: "TSM / 2330.TW",
+          indicator: "股价水平、近期变化率、财报窗口前后的方向",
+          threshold: "AI 相关财报季前后大幅回调,或跌破关键均线,警惕产能预期回落",
+          status: "watch",
+          note: "股价是被动信号——TSMC 作为整条 AI 芯片链的上游代工厂,其估值波动一定程度反映市场对全链景气度的定价。相较 NVDA,受单一叙事绑架更少。",
+          cadence: "每日",
+          sources: [
+            ["TSMC IR", "https://investor.tsmc.com/chinese/monthly-revenue"],
+            ["Yahoo 2330.TW", "https://finance.yahoo.com/quote/2330.TW"]
           ]
         },
         {
@@ -1572,7 +1599,11 @@
     // 实时数据的运行时元信息(数据新鲜度)。刻意独立于 state:
     // 绝不进 localStorage / 导出 JSON,否则会污染用户数据并被 mergeTrends 回灌。
     // isLive=null 表示尚未尝试拉取;true=实时采样成功;false=已回退示例数据。
-    const liveMeta = { "gpu-rent": { isLive: null, updatedAt: null, source: null } };
+    // 每个 key 对应 /api/trends 里一个实时 trend id。
+    const LIVE_TREND_IDS = ["gpu-rent", "tsmc-stock"];
+    const liveMeta = Object.fromEntries(
+      LIVE_TREND_IDS.map((id) => [id, { isLive: null, updatedAt: null, source: null }])
+    );
 
     function loadState() {
       const raw = localStorage.getItem(storageKey);
@@ -2267,28 +2298,38 @@
       try {
         const res = await fetch("/api/trends", { signal: controller.signal });
         clearTimeout(timer);
-        if (!res.ok) return markSampleFallback();
+        if (!res.ok) return markAllFallback();
         const data = await res.json();
-        const live = data["gpu-rent"];
-        if (!live || !Array.isArray(live.values) || !live.values.length) return markSampleFallback();
-        const trend = state.trends.find((t) => t.id === "gpu-rent");
-        if (!trend) return markSampleFallback();
-        trend.labels = live.labels;
-        trend.values = live.values;
-        if (live.source) trend.source = live.source;
-        liveMeta["gpu-rent"] = { isLive: true, updatedAt: live.updatedAt || null, source: live.source || null };
+        let anyLive = false;
+        // 每个实时源独立处理:某一源失败只标注它自己,不牵连其它源
+        for (const id of LIVE_TREND_IDS) {
+          const live = data[id];
+          const trend = state.trends.find((t) => t.id === id);
+          if (!trend) continue;
+          if (!live || !Array.isArray(live.values) || !live.values.length) {
+            liveMeta[id] = { isLive: false, updatedAt: null, source: null };
+            continue;
+          }
+          trend.labels = live.labels;
+          trend.values = live.values;
+          if (live.source) trend.source = live.source;
+          liveMeta[id] = { isLive: true, updatedAt: live.updatedAt || null, source: live.source || null };
+          anyLive = true;
+        }
         renderTrends();
-        requestAnimationFrame(drawAllCharts);
+        if (anyLive) requestAnimationFrame(drawAllCharts);
       } catch {
         clearTimeout(timer);
-        // 接口不可用或网络失败:明确回退到示例数据,并如实标注(不伪装成实时)
-        markSampleFallback();
+        // 接口不可用或网络失败:所有实时源都标回退,不伪装成实时
+        markAllFallback();
       }
     }
 
-    // 未取到实时数据时,把 gpu-rent 标为示例回退态,让 UI 显式提示而非静默伪装
-    function markSampleFallback() {
-      liveMeta["gpu-rent"] = { isLive: false, updatedAt: null, source: null };
+    // 全量回退:接口不可达时,所有已注册的实时 trend 一并标为示例数据
+    function markAllFallback() {
+      for (const id of LIVE_TREND_IDS) {
+        liveMeta[id] = { isLive: false, updatedAt: null, source: null };
+      }
       renderTrends();
     }
     hydrateFromApi();
