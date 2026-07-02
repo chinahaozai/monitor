@@ -1,0 +1,1589 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 硬信号监控台</title>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --surface-2: #eef2f6;
+      --line: #d8dee7;
+      --text: #152033;
+      --muted: #667085;
+      --blue: #2364aa;
+      --green: #157f55;
+      --amber: #b46b00;
+      --red: #c3342b;
+      --purple: #6b4ca3;
+      --shadow: 0 10px 24px rgba(16, 24, 40, 0.08);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+      font-weight: 760;
+    }
+
+    .brand-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .icon-button, .text-button {
+      height: 34px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .icon-button {
+      width: 36px;
+      padding: 0;
+    }
+
+    .text-button {
+      padding: 0 10px;
+    }
+
+    .icon-button:hover, .text-button:hover {
+      border-color: #98a2b3;
+      background: #fafbfc;
+    }
+
+    .main {
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 18px 20px 28px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1.1fr repeat(4, minmax(140px, 0.6fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .summary-card, .panel, .signal-card, .chart-panel, .trend-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .summary-card {
+      min-height: 104px;
+      padding: 14px;
+      display: grid;
+      align-content: space-between;
+      gap: 10px;
+    }
+
+    .risk-card {
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    .summary-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .summary-value {
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 780;
+    }
+
+    .summary-foot {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .risk-meter {
+      width: 116px;
+      height: 116px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--green) 0deg, var(--amber) 120deg, var(--red) 240deg, var(--green) 360deg);
+      padding: 8px;
+    }
+
+    .risk-meter-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--surface);
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .risk-text {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .risk-sub {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 10px;
+      margin-bottom: 14px;
+      align-items: center;
+    }
+
+    .trend-board {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 14px;
+      margin-bottom: 14px;
+      align-items: stretch;
+    }
+
+    .chart-panel {
+      min-height: 360px;
+      padding: 14px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+    }
+
+    .chart-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .chart-title h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.3;
+    }
+
+    .chart-title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .chart-canvas-wrap {
+      position: relative;
+      min-height: 242px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fbfcfd;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+    }
+
+    #mainTrendCanvas {
+      height: 242px;
+    }
+
+    .chart-foot {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mini-stat {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px;
+      min-height: 58px;
+      background: #fbfcfd;
+    }
+
+    .mini-stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .mini-stat strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .trend-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .trend-card {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 118px;
+      gap: 10px;
+      min-height: 106px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .trend-card:hover {
+      border-color: #98a2b3;
+      transform: translateY(-1px);
+    }
+
+    .trend-card.active {
+      border-color: rgba(35, 100, 170, 0.65);
+      box-shadow: 0 0 0 3px rgba(35, 100, 170, 0.12), var(--shadow);
+    }
+
+    .trend-card h3 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .trend-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .trend-value {
+      margin-top: 10px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .trend-value strong {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .trend-value span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .trend-change {
+      font-weight: 720;
+    }
+
+    .trend-change.up { color: var(--green); }
+    .trend-change.down { color: var(--red); }
+    .trend-change.flat { color: var(--muted); }
+
+    .spark-wrap {
+      align-self: stretch;
+      display: grid;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .sparkline {
+      height: 70px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fbfcfd;
+    }
+
+    .trend-table {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+
+    .trend-table table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .trend-table th, .trend-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .trend-table th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 680;
+      background: #fbfcfd;
+    }
+
+    .trend-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .search-wrap {
+      position: relative;
+      min-width: 0;
+    }
+
+    .search-wrap i {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      width: 16px;
+      height: 16px;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 0 12px 0 34px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+    }
+
+    .search-wrap input:focus, select:focus, textarea:focus, input[type="date"]:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(35, 100, 170, 0.14);
+    }
+
+    select, input[type="date"] {
+      height: 38px;
+      min-width: 138px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 0 10px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .signal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .signal-card {
+      min-height: 278px;
+      padding: 14px;
+      display: grid;
+      grid-template-rows: auto auto auto 1fr auto;
+      gap: 10px;
+    }
+
+    .signal-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .signal-title {
+      min-width: 0;
+    }
+
+    .signal-title h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.35;
+    }
+
+    .signal-title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .badge.layer-capex { border-color: rgba(35, 100, 170, 0.3); color: var(--blue); background: rgba(35, 100, 170, 0.08); }
+    .badge.layer-chip { border-color: rgba(107, 76, 163, 0.3); color: var(--purple); background: rgba(107, 76, 163, 0.08); }
+    .badge.layer-cloud { border-color: rgba(21, 127, 85, 0.3); color: var(--green); background: rgba(21, 127, 85, 0.08); }
+    .badge.layer-chain { border-color: rgba(180, 107, 0, 0.3); color: var(--amber); background: rgba(180, 107, 0, 0.08); }
+    .badge.layer-ashare { border-color: rgba(195, 52, 43, 0.25); color: var(--red); background: rgba(195, 52, 43, 0.07); }
+
+    .status-select {
+      min-width: 106px;
+      height: 34px;
+      font-weight: 680;
+    }
+
+    .status-green { color: var(--green); border-color: rgba(21, 127, 85, 0.35); background: rgba(21, 127, 85, 0.08); }
+    .status-yellow { color: var(--amber); border-color: rgba(180, 107, 0, 0.38); background: rgba(180, 107, 0, 0.09); }
+    .status-red { color: var(--red); border-color: rgba(195, 52, 43, 0.35); background: rgba(195, 52, 43, 0.08); }
+    .status-watch { color: var(--blue); border-color: rgba(35, 100, 170, 0.3); background: rgba(35, 100, 170, 0.08); }
+
+    .metric-list {
+      display: grid;
+      gap: 7px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .metric {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 8px;
+    }
+
+    .metric span:first-child {
+      color: var(--muted);
+    }
+
+    .note-area {
+      width: 100%;
+      min-height: 68px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px;
+      color: var(--text);
+      background: #fbfcfd;
+      outline: none;
+      line-height: 1.45;
+    }
+
+    .signal-foot {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .source-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .panel {
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .rule-list, .queue-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .rule-list li, .queue-list li {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .rule-list li:first-child, .queue-list li:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .rule-kicker {
+      display: inline-flex;
+      align-items: center;
+      min-width: 58px;
+      height: 22px;
+      padding: 0 7px;
+      border-radius: 999px;
+      margin-right: 6px;
+      font-size: 12px;
+      font-weight: 720;
+      border: 1px solid var(--line);
+    }
+
+    .rule-kicker.red { color: var(--red); background: rgba(195, 52, 43, 0.08); border-color: rgba(195, 52, 43, 0.3); }
+    .rule-kicker.yellow { color: var(--amber); background: rgba(180, 107, 0, 0.09); border-color: rgba(180, 107, 0, 0.34); }
+    .rule-kicker.green { color: var(--green); background: rgba(21, 127, 85, 0.08); border-color: rgba(21, 127, 85, 0.3); }
+
+    .watch-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .watch-row input {
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 0 9px;
+      min-width: 0;
+      outline: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1120px) {
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .risk-card {
+        grid-column: span 2;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .trend-board {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .panel {
+        margin-bottom: 0;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .topbar-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+      }
+
+      .signal-grid, .sidebar {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .risk-card {
+        grid-column: span 2;
+      }
+
+      .trend-card {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-foot {
+        grid-template-columns: 1fr;
+      }
+
+      .trend-table {
+        overflow-x: auto;
+      }
+
+      .trend-table table {
+        min-width: 720px;
+      }
+
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      select, input[type="date"] {
+        width: 100%;
+      }
+
+      .risk-meter {
+        width: 96px;
+        height: 96px;
+      }
+
+      .metric {
+        grid-template-columns: 76px 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .risk-card {
+        grid-column: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <h1>AI 硬信号监控台</h1>
+          <div class="brand-meta">
+            <span id="todayLabel"></span>
+            <span id="saveLabel">本地保存</span>
+            <span id="visibleLabel"></span>
+          </div>
+        </div>
+        <div class="toolbar" aria-label="看板操作">
+          <button class="icon-button" id="exportBtn" title="导出 JSON" aria-label="导出 JSON"><i data-lucide="download"></i></button>
+          <label class="icon-button" title="导入 JSON" aria-label="导入 JSON" for="importFile"><i data-lucide="upload"></i></label>
+          <input class="hidden" id="importFile" type="file" accept="application/json">
+          <button class="icon-button" id="resetBtn" title="恢复默认" aria-label="恢复默认"><i data-lucide="rotate-ccw"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="summary-grid" aria-label="总览">
+        <article class="summary-card risk-card">
+          <div>
+            <div class="summary-label">综合风险</div>
+            <div class="summary-value" id="riskWord">观察</div>
+            <div class="summary-foot" id="riskReason">等待信号更新</div>
+          </div>
+          <div class="risk-meter" aria-hidden="true">
+            <div class="risk-meter-inner">
+              <div>
+                <span class="risk-text" id="riskScore">0</span>
+                <span class="risk-sub">score</span>
+              </div>
+            </div>
+          </div>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label">红灯</div>
+          <div class="summary-value" id="redCount">0</div>
+          <div class="summary-foot">硬信号恶化</div>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label">黄灯</div>
+          <div class="summary-value" id="yellowCount">0</div>
+          <div class="summary-foot">边际转弱</div>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label">观察</div>
+          <div class="summary-value" id="watchCount">0</div>
+          <div class="summary-foot">等待确认</div>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label">绿灯</div>
+          <div class="summary-value" id="greenCount">0</div>
+          <div class="summary-foot">需求仍稳</div>
+        </article>
+      </section>
+
+      <section class="trend-board" aria-label="趋势监控">
+        <article class="chart-panel">
+          <div class="chart-header">
+            <div class="chart-title">
+              <h2 id="mainTrendTitle">趋势监控</h2>
+              <p id="mainTrendSub">订单、租金、价格和资本开支的边际变化</p>
+            </div>
+            <select id="trendSelect" aria-label="趋势指标"></select>
+          </div>
+          <div class="chart-canvas-wrap">
+            <canvas id="mainTrendCanvas" aria-label="主趋势图"></canvas>
+          </div>
+          <div class="chart-foot">
+            <div class="mini-stat">
+              <span>最新值</span>
+              <strong id="trendLatest">--</strong>
+            </div>
+            <div class="mini-stat">
+              <span>区间变化</span>
+              <strong id="trendChange">--</strong>
+            </div>
+            <div class="mini-stat">
+              <span>触发条件</span>
+              <strong id="trendTrigger">--</strong>
+            </div>
+          </div>
+        </article>
+
+        <div class="trend-stack" id="trendStack" aria-label="趋势指标卡片"></div>
+      </section>
+
+      <section class="trend-table" aria-label="趋势数据表">
+        <table>
+          <thead>
+            <tr>
+              <th>指标</th>
+              <th>最新</th>
+              <th>区间变化</th>
+              <th>状态</th>
+              <th>观察口径</th>
+            </tr>
+          </thead>
+          <tbody id="trendTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="filters" aria-label="筛选">
+        <div class="search-wrap">
+          <i data-lucide="search"></i>
+          <input id="searchInput" type="search" placeholder="搜索公司、信号、关键词">
+        </div>
+        <select id="layerFilter" aria-label="层级筛选">
+          <option value="all">全部层级</option>
+          <option value="capex">大厂 Capex</option>
+          <option value="chip">芯片/HBM</option>
+          <option value="cloud">云 GPU</option>
+          <option value="chain">光模块/PCB</option>
+          <option value="ashare">A股验证</option>
+        </select>
+        <select id="statusFilter" aria-label="状态筛选">
+          <option value="all">全部状态</option>
+          <option value="red">红灯</option>
+          <option value="yellow">黄灯</option>
+          <option value="watch">观察</option>
+          <option value="green">绿灯</option>
+        </select>
+        <input id="reviewDate" type="date" aria-label="下次复盘日期">
+      </section>
+
+      <div class="layout">
+        <section class="signal-grid" id="signalGrid" aria-label="信号卡片"></section>
+
+        <aside class="sidebar" aria-label="侧栏">
+          <section class="panel">
+            <h2>红灯规则</h2>
+            <ul class="rule-list">
+              <li><span class="rule-kicker red">红灯</span>两家以上大厂下修 AI capex，或 Nvidia/Broadcom/Micron 指引同步低于预期。</li>
+              <li><span class="rule-kicker red">红灯</span>GPU 租金连续 4 周明显下跌，且可租库存同步增加。</li>
+              <li><span class="rule-kicker yellow">黄灯</span>公司措辞从供不应求转向消化产能、优化投入、客户压价。</li>
+              <li><span class="rule-kicker green">绿灯</span>capex 上调、订单能见度增强、价格和毛利率稳定。</li>
+            </ul>
+          </section>
+
+          <section class="panel">
+            <h2>财报队列</h2>
+            <ul class="queue-list" id="queueList"></ul>
+          </section>
+
+          <section class="panel">
+            <h2>自定义观察</h2>
+            <div class="watch-row">
+              <input id="watchInput" type="text" placeholder="新增关键词">
+              <button class="icon-button" id="addWatchBtn" title="新增" aria-label="新增"><i data-lucide="plus"></i></button>
+            </div>
+            <ul class="queue-list" id="watchList" style="margin-top: 12px;"></ul>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const storageKey = "ai-chain-monitor-v1";
+
+    const layerInfo = {
+      capex: { label: "大厂 Capex", className: "layer-capex" },
+      chip: { label: "芯片/HBM", className: "layer-chip" },
+      cloud: { label: "云 GPU", className: "layer-cloud" },
+      chain: { label: "光模块/PCB", className: "layer-chain" },
+      ashare: { label: "A股验证", className: "layer-ashare" }
+    };
+
+    const defaultState = {
+      reviewDate: "",
+      selectedTrendId: "gpu-rent",
+      watchlist: ["AI capex 下修", "GPU 租金 下跌", "HBM 砍单", "光模块 订单 下修"],
+      trends: [
+        {
+          id: "gpu-rent",
+          title: "H100/B200 云 GPU 租金",
+          unit: "美元/小时",
+          direction: "down-bad",
+          status: "watch",
+          source: "Vast.ai / RunPod / Lambda 周度样本",
+          trigger: "连续 4 周下跌且可租库存增加",
+          labels: ["W-7", "W-6", "W-5", "W-4", "W-3", "W-2", "W-1", "本周"],
+          values: [3.92, 3.88, 3.83, 3.79, 3.71, 3.66, 3.58, 3.52]
+        },
+        {
+          id: "hyperscaler-capex",
+          title: "云厂商 AI capex 指引",
+          unit: "指数",
+          direction: "down-bad",
+          status: "green",
+          source: "MSFT / META / GOOGL / AMZN 财报口径",
+          trigger: "两家以上明确下修或改口消化产能",
+          labels: ["Q3", "Q4", "Q1", "Q2", "Q3e", "Q4e"],
+          values: [100, 112, 126, 139, 153, 164]
+        },
+        {
+          id: "hbm-price",
+          title: "HBM 价格/供需强度",
+          unit: "指数",
+          direction: "down-bad",
+          status: "green",
+          source: "存储厂商电话会 / TrendForce 口径",
+          trigger: "价格松动、客户推迟订单或 sold out 表述消失",
+          labels: ["M-5", "M-4", "M-3", "M-2", "M-1", "本月"],
+          values: [100, 106, 111, 116, 119, 121]
+        },
+        {
+          id: "optical-orders",
+          title: "800G/1.6T 光模块订单",
+          unit: "指数",
+          direction: "down-bad",
+          status: "watch",
+          source: "公告 / 调研纪要 / 海外光器件厂商指引",
+          trigger: "海外客户砍单或交付延后",
+          labels: ["M-5", "M-4", "M-3", "M-2", "M-1", "本月"],
+          values: [100, 108, 119, 131, 137, 136]
+        },
+        {
+          id: "pcb-server-orders",
+          title: "AI PCB/服务器链订单",
+          unit: "指数",
+          direction: "down-bad",
+          status: "yellow",
+          source: "台股月营收 / A股公告 / 供应链调研",
+          trigger: "压价和订单延期同时出现",
+          labels: ["M-5", "M-4", "M-3", "M-2", "M-1", "本月"],
+          values: [100, 111, 125, 132, 131, 127]
+        }
+      ],
+      signals: [
+        {
+          id: "msft-meta-goog-amzn-capex",
+          layer: "capex",
+          trendId: "hyperscaler-capex",
+          title: "微软/Meta/Google/Amazon AI capex",
+          company: "MSFT, META, GOOGL, AMZN",
+          indicator: "季度资本开支、下季展望、电话会措辞",
+          threshold: "任两家明确下修或强调消化产能，升红灯",
+          status: "watch",
+          note: "重点看 capacity constrained、raising capex、optimize spend、digest capacity 等措辞。",
+          cadence: "财报季",
+          sources: [
+            ["Microsoft IR", "https://www.microsoft.com/en-us/Investor/earnings/FY-2026-Q4/press-release-webcast"],
+            ["Meta IR", "https://investor.atmeta.com/financials/"],
+            ["Alphabet IR", "https://abc.xyz/investor/"],
+            ["Amazon IR", "https://ir.aboutamazon.com/quarterly-results/default.aspx"]
+          ]
+        },
+        {
+          id: "nvidia-datacenter-guidance",
+          layer: "chip",
+          trendId: "hyperscaler-capex",
+          title: "Nvidia 数据中心收入和指引",
+          company: "NVDA",
+          indicator: "Data Center 收入、下一季收入指引、Blackwell 供应表述",
+          threshold: "数据中心增速或公司总收入指引显著低于预期，升红灯",
+          status: "watch",
+          note: "这是 AI 硬件链最核心的确认项。",
+          cadence: "财报季",
+          sources: [
+            ["Nvidia IR", "https://investor.nvidia.com/financial-info/financial-reports/default.aspx"]
+          ]
+        },
+        {
+          id: "amd-broadcom-ai-revenue",
+          layer: "chip",
+          trendId: "hyperscaler-capex",
+          title: "AMD/Broadcom AI 收入指引",
+          company: "AMD, AVGO",
+          indicator: "Data Center GPU、AI networking、custom AI accelerator 指引",
+          threshold: "两家公司同时转弱，说明不只是单一厂商节奏问题",
+          status: "watch",
+          note: "Broadcom 对定制芯片和网络链很敏感。",
+          cadence: "财报季",
+          sources: [
+            ["AMD IR", "https://ir.amd.com/financial-information/financial-results"],
+            ["Broadcom IR", "https://investors.broadcom.com/financial-information/quarterly-results"]
+          ]
+        },
+        {
+          id: "micron-hbm",
+          layer: "chip",
+          trendId: "hbm-price",
+          title: "Micron HBM 供需和毛利率",
+          company: "MU",
+          indicator: "HBM sold out、价格、毛利率、产能扩张节奏",
+          threshold: "HBM 价格松动或客户推迟订单，升黄灯或红灯",
+          status: "watch",
+          note: "HBM 是 AI 服务器景气度的高弹性部件。",
+          cadence: "财报季",
+          sources: [
+            ["Micron IR", "https://investors.micron.com/"]
+          ]
+        },
+        {
+          id: "cloud-gpu-rent",
+          layer: "cloud",
+          trendId: "gpu-rent",
+          title: "H100/B200 云 GPU 租金",
+          company: "Vast.ai, RunPod, Lambda, CoreWeave",
+          indicator: "小时租金、可租库存、排队时间、折扣",
+          threshold: "连续 4 周租金明显下跌且库存增加，升红灯",
+          status: "watch",
+          note: "这项比新闻更接近算力利用率，但不同平台口径要分开看。",
+          cadence: "每周",
+          sources: [
+            ["Vast.ai", "https://vast.ai/"],
+            ["RunPod", "https://www.runpod.io/pricing"],
+            ["Lambda", "https://lambda.ai/service/gpu-cloud"],
+            ["CoreWeave IR", "https://investors.coreweave.com/financials/quarterly-results/default.aspx"]
+          ]
+        },
+        {
+          id: "optical-module",
+          layer: "chain",
+          trendId: "optical-orders",
+          title: "800G/1.6T 光模块订单",
+          company: "中际旭创, 新易盛, 天孚通信, Coherent, Lumentum",
+          indicator: "订单能见度、交付节奏、毛利率、客户集中度",
+          threshold: "海外客户砍单或交付延后，升红灯",
+          status: "watch",
+          note: "A股 AI 硬件链情绪最敏感的环节之一。",
+          cadence: "公告/调研",
+          sources: [
+            ["巨潮资讯", "http://www.cninfo.com.cn/new/index"],
+            ["Coherent IR", "https://investors.coherent.com/"],
+            ["Lumentum IR", "https://investor.lumentum.com/"]
+          ]
+        },
+        {
+          id: "pcb-server",
+          layer: "chain",
+          trendId: "pcb-server-orders",
+          title: "AI PCB 和服务器链",
+          company: "沪电股份, 胜宏科技, 深南电路, 工业富联, 广达, 纬颖",
+          indicator: "客户压价、订单延期、月营收、毛利率",
+          threshold: "压价和订单延期同时出现，升黄灯；业绩指引下修升红灯",
+          status: "watch",
+          note: "PCB 小作文很多，要以公告、月营收和调研纪要确认。",
+          cadence: "每月/公告",
+          sources: [
+            ["巨潮资讯", "http://www.cninfo.com.cn/new/index"],
+            ["台湾公开资讯观测站", "https://mops.twse.com.tw/mops/web/index"]
+          ]
+        },
+        {
+          id: "ashare-core-earnings",
+          layer: "ashare",
+          trendId: "optical-orders",
+          title: "A股 AI 核心公司业绩兑现",
+          company: "寒武纪, 光模块, PCB, 液冷, 电源",
+          indicator: "季报、业绩预告、风险提示、投资者关系记录",
+          threshold: "高估值但收入利润未兑现，且公告反复提示风险，升红灯",
+          status: "watch",
+          note: "股价跌不等于基本面坏，关键看业绩和订单是否开始证伪。",
+          cadence: "公告日",
+          sources: [
+            ["上交所公告", "https://www.sse.com.cn/disclosure/listedinfo/announcement/"],
+            ["深交所公告", "https://www.szse.cn/disclosure/listed/notice/index.html"],
+            ["互动易", "https://irm.cninfo.com.cn/"]
+          ]
+        }
+      ]
+    };
+
+    let state = loadState();
+
+    function loadState() {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return structuredClone(defaultState);
+      try {
+        const parsed = JSON.parse(raw);
+        return {
+          ...structuredClone(defaultState),
+          ...parsed,
+          trends: mergeTrends(parsed.trends || []),
+          signals: mergeSignals(parsed.signals || [])
+        };
+      } catch {
+        return structuredClone(defaultState);
+      }
+    }
+
+    function mergeTrends(savedTrends) {
+      return defaultState.trends.map((trend) => ({
+        ...trend,
+        ...(savedTrends.find((item) => item.id === trend.id) || {})
+      }));
+    }
+
+    function mergeSignals(savedSignals) {
+      return defaultState.signals.map((signal) => ({
+        ...signal,
+        ...(savedSignals.find((item) => item.id === signal.id) || {})
+      }));
+    }
+
+    function saveState() {
+      localStorage.setItem(storageKey, JSON.stringify(state, null, 2));
+      const label = document.getElementById("saveLabel");
+      label.textContent = "已保存 " + new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function statusLabel(status) {
+      return { green: "绿灯", yellow: "黄灯", red: "红灯", watch: "观察" }[status] || "观察";
+    }
+
+    function statusClass(status) {
+      return "status-" + (status || "watch");
+    }
+
+    function getFilteredSignals() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      const layer = document.getElementById("layerFilter").value;
+      const status = document.getElementById("statusFilter").value;
+      return state.signals.filter((signal) => {
+        const text = [signal.title, signal.company, signal.indicator, signal.threshold, signal.note, layerInfo[signal.layer]?.label]
+          .join(" ")
+          .toLowerCase();
+        return (layer === "all" || signal.layer === layer) &&
+          (status === "all" || signal.status === status) &&
+          (!query || text.includes(query));
+      });
+    }
+
+    function render() {
+      document.getElementById("todayLabel").textContent = new Date().toLocaleDateString("zh-CN", {
+        year: "numeric", month: "2-digit", day: "2-digit", weekday: "short"
+      });
+      document.getElementById("reviewDate").value = state.reviewDate || "";
+      renderSummary();
+      renderTrends();
+      renderSignals();
+      renderQueue();
+      renderWatchlist();
+      requestAnimationFrame(drawAllCharts);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderSummary() {
+      const counts = { red: 0, yellow: 0, watch: 0, green: 0 };
+      state.signals.forEach((signal) => counts[signal.status]++);
+      const score = counts.red * 3 + counts.yellow * 2 + counts.watch;
+      const maxScore = state.signals.length * 3;
+      const normalized = Math.round((score / maxScore) * 100);
+      let word = "低风险";
+      let reason = "硬信号整体稳定";
+      if (counts.red >= 2 || normalized >= 58) {
+        word = "高风险";
+        reason = "多项硬信号需要同步复核";
+      } else if (counts.red === 1 || counts.yellow >= 2 || normalized >= 35) {
+        word = "中风险";
+        reason = "出现边际转弱信号";
+      } else if (counts.watch >= 4) {
+        word = "观察";
+        reason = "等待财报和价格信号确认";
+      }
+      document.getElementById("redCount").textContent = counts.red;
+      document.getElementById("yellowCount").textContent = counts.yellow;
+      document.getElementById("watchCount").textContent = counts.watch;
+      document.getElementById("greenCount").textContent = counts.green;
+      document.getElementById("riskScore").textContent = normalized;
+      document.getElementById("riskWord").textContent = word;
+      document.getElementById("riskReason").textContent = reason;
+    }
+
+    function renderTrends() {
+      if (!state.trends.some((trend) => trend.id === state.selectedTrendId)) {
+        state.selectedTrendId = state.trends[0]?.id || "";
+      }
+      const selected = getTrend(state.selectedTrendId);
+      const select = document.getElementById("trendSelect");
+      select.innerHTML = state.trends.map((trend) => `
+        <option value="${trend.id}" ${trend.id === state.selectedTrendId ? "selected" : ""}>${escapeHtml(trend.title)}</option>
+      `).join("");
+
+      document.getElementById("mainTrendTitle").textContent = selected?.title || "趋势监控";
+      document.getElementById("mainTrendSub").textContent = selected?.source || "订单、租金、价格和资本开支的边际变化";
+      document.getElementById("trendLatest").textContent = selected ? formatTrendValue(selected, latestValue(selected)) : "--";
+      document.getElementById("trendChange").textContent = selected ? formatTrendChange(selected) : "--";
+      document.getElementById("trendChange").className = trendChangeClass(selected);
+      document.getElementById("trendTrigger").textContent = selected?.trigger || "--";
+
+      document.getElementById("trendStack").innerHTML = state.trends.map((trend) => {
+        const latest = latestValue(trend);
+        return `
+          <article class="trend-card ${trend.id === state.selectedTrendId ? "active" : ""}" data-trend-card="${trend.id}">
+            <div>
+              <h3>${escapeHtml(trend.title)}</h3>
+              <div class="trend-meta">
+                <span class="badge ${statusClass(trend.status)}">${statusLabel(trend.status)}</span>
+                <span>${escapeHtml(trend.unit)}</span>
+              </div>
+              <div class="trend-value">
+                <strong>${formatTrendValue(trend, latest)}</strong>
+                <span class="trend-change ${trendMoveClass(trend)}">${formatTrendChange(trend)}</span>
+              </div>
+            </div>
+            <div class="spark-wrap">
+              <canvas class="sparkline" data-trend-spark="${trend.id}" aria-label="${escapeHtml(trend.title)}趋势图"></canvas>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      document.getElementById("trendTableBody").innerHTML = state.trends.map((trend) => `
+        <tr>
+          <td><strong>${escapeHtml(trend.title)}</strong><br><span style="color: var(--muted);">${escapeHtml(trend.source)}</span></td>
+          <td>${formatTrendValue(trend, latestValue(trend))}</td>
+          <td><span class="trend-change ${trendMoveClass(trend)}">${formatTrendChange(trend)}</span></td>
+          <td><span class="badge ${statusClass(trend.status)}">${statusLabel(trend.status)}</span></td>
+          <td>${escapeHtml(trend.trigger)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function getTrend(id) {
+      return state.trends.find((trend) => trend.id === id);
+    }
+
+    function latestValue(trend) {
+      return trend.values[trend.values.length - 1];
+    }
+
+    function firstValue(trend) {
+      return trend.values[0];
+    }
+
+    function trendDelta(trend) {
+      return latestValue(trend) - firstValue(trend);
+    }
+
+    function trendDeltaPct(trend) {
+      const first = firstValue(trend);
+      if (!first) return 0;
+      return trendDelta(trend) / first;
+    }
+
+    function formatTrendValue(trend, value) {
+      if (trend.unit.includes("美元")) return value.toFixed(2);
+      return Math.round(value).toString();
+    }
+
+    function formatTrendChange(trend) {
+      const delta = trendDelta(trend);
+      const pct = trendDeltaPct(trend) * 100;
+      const sign = delta > 0 ? "+" : "";
+      return sign + pct.toFixed(1) + "%";
+    }
+
+    function trendMoveClass(trend) {
+      const delta = trendDelta(trend);
+      if (Math.abs(delta) < 0.0001) return "flat";
+      if (trend.direction === "down-bad") return delta < 0 ? "down" : "up";
+      return delta > 0 ? "down" : "up";
+    }
+
+    function trendChangeClass(trend) {
+      return trend ? "trend-change " + trendMoveClass(trend) : "trend-change flat";
+    }
+
+    function drawAllCharts() {
+      const selected = getTrend(state.selectedTrendId);
+      if (selected) drawLineChart(document.getElementById("mainTrendCanvas"), selected, { compact: false });
+      document.querySelectorAll("[data-trend-spark]").forEach((canvas) => {
+        const trend = getTrend(canvas.dataset.trendSpark);
+        if (trend) drawLineChart(canvas, trend, { compact: true });
+      });
+    }
+
+    function drawLineChart(canvas, trend, options) {
+      const rect = canvas.getBoundingClientRect();
+      const cssWidth = Math.max(1, rect.width);
+      const cssHeight = options.compact ? 70 : 242;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(cssWidth * dpr);
+      canvas.height = Math.round(cssHeight * dpr);
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+      const values = trend.values;
+      const minRaw = Math.min(...values);
+      const maxRaw = Math.max(...values);
+      const span = Math.max(0.01, maxRaw - minRaw);
+      const pad = options.compact ? { top: 10, right: 10, bottom: 12, left: 10 } : { top: 22, right: 24, bottom: 34, left: 46 };
+      const min = minRaw - span * 0.16;
+      const max = maxRaw + span * 0.16;
+      const plotW = cssWidth - pad.left - pad.right;
+      const plotH = cssHeight - pad.top - pad.bottom;
+      const accent = trendMoveClass(trend) === "down" ? "#c3342b" : "#157f55";
+      const grid = "#e5eaf1";
+
+      const point = (value, index) => {
+        const x = pad.left + (plotW * index) / Math.max(1, values.length - 1);
+        const y = pad.top + plotH - ((value - min) / (max - min)) * plotH;
+        return { x, y };
+      };
+
+      if (!options.compact) {
+        ctx.strokeStyle = grid;
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "#667085";
+        ctx.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+        for (let i = 0; i < 4; i++) {
+          const y = pad.top + (plotH * i) / 3;
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(cssWidth - pad.right, y);
+          ctx.stroke();
+          const labelValue = max - ((max - min) * i) / 3;
+          ctx.fillText(formatTrendValue(trend, labelValue), 8, y + 4);
+        }
+        trend.labels.forEach((label, index) => {
+          if (index % Math.ceil(trend.labels.length / 5) !== 0 && index !== trend.labels.length - 1) return;
+          const { x } = point(values[index], index);
+          ctx.fillText(label, Math.max(4, x - 15), cssHeight - 12);
+        });
+      }
+
+      ctx.beginPath();
+      values.forEach((value, index) => {
+        const { x, y } = point(value, index);
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = options.compact ? 2 : 2.5;
+      ctx.stroke();
+
+      if (!options.compact) {
+        const last = point(values[values.length - 1], values.length - 1);
+        ctx.fillStyle = accent;
+        values.forEach((value, index) => {
+          const { x, y } = point(value, index);
+          ctx.beginPath();
+          ctx.arc(x, y, index === values.length - 1 ? 4 : 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.fillStyle = "#152033";
+        ctx.font = "600 12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+        ctx.fillText(formatTrendValue(trend, latestValue(trend)), Math.min(cssWidth - 58, last.x + 8), Math.max(18, last.y - 8));
+      }
+    }
+
+    function renderSignals() {
+      const grid = document.getElementById("signalGrid");
+      const filtered = getFilteredSignals();
+      document.getElementById("visibleLabel").textContent = "显示 " + filtered.length + "/" + state.signals.length + " 项";
+      grid.innerHTML = filtered.map((signal) => {
+        const layer = layerInfo[signal.layer];
+        const trend = getTrend(signal.trendId);
+        const sources = signal.sources.map(([label, url]) => `<a href="${url}" target="_blank" rel="noreferrer">${label}</a>`).join("");
+        return `
+          <article class="signal-card" data-id="${signal.id}">
+            <div class="signal-head">
+              <div class="signal-title">
+                <h2>${escapeHtml(signal.title)}</h2>
+                <p>${escapeHtml(signal.company)}</p>
+              </div>
+              <select class="status-select ${statusClass(signal.status)}" data-action="status" aria-label="状态">
+                <option value="green" ${signal.status === "green" ? "selected" : ""}>绿灯</option>
+                <option value="yellow" ${signal.status === "yellow" ? "selected" : ""}>黄灯</option>
+                <option value="red" ${signal.status === "red" ? "selected" : ""}>红灯</option>
+                <option value="watch" ${signal.status === "watch" ? "selected" : ""}>观察</option>
+              </select>
+            </div>
+            <div class="badge-row">
+              <span class="badge ${layer.className}">${layer.label}</span>
+              <span class="badge">${escapeHtml(signal.cadence)}</span>
+              <span class="badge">${statusLabel(signal.status)}</span>
+            </div>
+            <div class="spark-wrap">
+              <canvas class="sparkline" data-trend-spark="${trend?.id || ""}" aria-label="${escapeHtml(trend?.title || signal.title)}趋势图"></canvas>
+            </div>
+            <div class="metric-list">
+              <div class="metric"><span>监控项</span><strong>${escapeHtml(signal.indicator)}</strong></div>
+              <div class="metric"><span>阈值</span><span>${escapeHtml(signal.threshold)}</span></div>
+            </div>
+            <textarea class="note-area" data-action="note" aria-label="备注">${escapeHtml(signal.note)}</textarea>
+            <div class="signal-foot">
+              <div class="source-links">${sources}</div>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderQueue() {
+      const items = [
+        ["大厂 capex", "MSFT / META / GOOGL / AMZN / ORCL"],
+        ["芯片指引", "NVDA / AMD / AVGO / MU"],
+        ["云算力", "CoreWeave / RunPod / Lambda / Vast.ai"],
+        ["A股公告", "光模块 / PCB / 算力芯片 / 液冷"]
+      ];
+      document.getElementById("queueList").innerHTML = items.map(([title, detail]) => `
+        <li><strong>${title}</strong><br><span style="color: var(--muted);">${detail}</span></li>
+      `).join("");
+    }
+
+    function renderWatchlist() {
+      const list = document.getElementById("watchList");
+      list.innerHTML = state.watchlist.map((item, index) => `
+        <li>
+          <div class="watch-row">
+            <span>${escapeHtml(item)}</span>
+            <button class="icon-button" data-watch-index="${index}" title="删除" aria-label="删除"><i data-lucide="trash-2"></i></button>
+          </div>
+        </li>
+      `).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.getElementById("signalGrid").addEventListener("change", (event) => {
+      const card = event.target.closest(".signal-card");
+      if (!card) return;
+      const signal = state.signals.find((item) => item.id === card.dataset.id);
+      if (!signal) return;
+      if (event.target.dataset.action === "status") {
+        signal.status = event.target.value;
+        saveState();
+        render();
+      }
+    });
+
+    document.getElementById("signalGrid").addEventListener("input", (event) => {
+      const card = event.target.closest(".signal-card");
+      if (!card || event.target.dataset.action !== "note") return;
+      const signal = state.signals.find((item) => item.id === card.dataset.id);
+      if (!signal) return;
+      signal.note = event.target.value;
+      saveState();
+    });
+
+    ["searchInput", "layerFilter", "statusFilter"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", renderSignals);
+      document.getElementById(id).addEventListener("change", renderSignals);
+    });
+
+    document.getElementById("trendSelect").addEventListener("change", (event) => {
+      state.selectedTrendId = event.target.value;
+      saveState();
+      renderTrends();
+      requestAnimationFrame(drawAllCharts);
+    });
+
+    document.getElementById("trendStack").addEventListener("click", (event) => {
+      const card = event.target.closest("[data-trend-card]");
+      if (!card) return;
+      state.selectedTrendId = card.dataset.trendCard;
+      saveState();
+      renderTrends();
+      requestAnimationFrame(drawAllCharts);
+    });
+
+    window.addEventListener("resize", () => {
+      requestAnimationFrame(drawAllCharts);
+    });
+
+    document.getElementById("reviewDate").addEventListener("change", (event) => {
+      state.reviewDate = event.target.value;
+      saveState();
+    });
+
+    document.getElementById("addWatchBtn").addEventListener("click", () => {
+      const input = document.getElementById("watchInput");
+      const value = input.value.trim();
+      if (!value) return;
+      state.watchlist.unshift(value);
+      input.value = "";
+      saveState();
+      renderWatchlist();
+      if (window.lucide) lucide.createIcons();
+    });
+
+    document.getElementById("watchInput").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") document.getElementById("addWatchBtn").click();
+    });
+
+    document.getElementById("watchList").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-watch-index]");
+      if (!button) return;
+      state.watchlist.splice(Number(button.dataset.watchIndex), 1);
+      saveState();
+      renderWatchlist();
+      if (window.lucide) lucide.createIcons();
+    });
+
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "ai-chain-monitor.json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("importFile").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        const imported = JSON.parse(await file.text());
+        state = {
+          ...structuredClone(defaultState),
+          ...imported,
+          trends: mergeTrends(imported.trends || []),
+          signals: mergeSignals(imported.signals || [])
+        };
+        saveState();
+        render();
+      } catch {
+        alert("JSON 无法读取");
+      } finally {
+        event.target.value = "";
+      }
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      if (!confirm("恢复默认看板？")) return;
+      state = structuredClone(defaultState);
+      saveState();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
