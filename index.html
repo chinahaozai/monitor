@@ -2184,6 +2184,32 @@
 
     render();
     setupChartHover();
+
+    // 从本地代理拉取实时 GPU 租金,增强 gpu-rent 趋势;失败静默降级到示例数据。
+    // 只在内存态覆盖图形部分,不写 localStorage(避免污染用户导出)。
+    async function hydrateFromApi() {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      try {
+        const res = await fetch("/api/trends", { signal: controller.signal });
+        clearTimeout(timer);
+        if (!res.ok) return;
+        const data = await res.json();
+        const live = data["gpu-rent"];
+        if (!live || !Array.isArray(live.values) || !live.values.length) return;
+        const trend = state.trends.find((t) => t.id === "gpu-rent");
+        if (!trend) return;
+        trend.labels = live.labels;
+        trend.values = live.values;
+        if (live.source) trend.source = live.source;
+        renderTrends();
+        requestAnimationFrame(drawAllCharts);
+      } catch {
+        clearTimeout(timer);
+        // 代理未启动或网络失败:保持示例数据,不打扰用户
+      }
+    }
+    hydrateFromApi();
   </script>
 </body>
 </html>
