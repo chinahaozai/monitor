@@ -363,8 +363,8 @@
       font-weight: 720;
     }
 
-    .trend-change.up { color: var(--green); }
-    .trend-change.down { color: var(--red); }
+    .trend-change.up { color: var(--red); }
+    .trend-change.down { color: var(--green); }
     .trend-change.flat { color: var(--muted); }
 
     .spark-wrap {
@@ -1338,7 +1338,7 @@
       const max = maxRaw + span * 0.16;
       const plotW = cssWidth - pad.left - pad.right;
       const plotH = cssHeight - pad.top - pad.bottom;
-      const accent = trendMoveClass(trend) === "down" ? "#c3342b" : "#157f55";
+      const accent = trendMoveClass(trend) === "down" ? "#157f55" : "#c3342b";
       const grid = "#e5eaf1";
 
       const point = (value, index) => {
