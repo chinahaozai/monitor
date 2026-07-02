@@ -1398,6 +1398,17 @@
           values: [1080, 1095, 1110, 1140, 1155, 1170, 1200, 1230]
         },
         {
+          id: "nvda-stock",
+          title: "Nvidia 股价(NVDA)",
+          unit: "美元",
+          direction: "down-bad",
+          status: "watch",
+          source: "Yahoo Finance 日频",
+          trigger: "财报后大幅回调,或跌破关键均线且成交放量",
+          labels: ["W-7", "W-6", "W-5", "W-4", "W-3", "W-2", "W-1", "本周"],
+          values: [138, 142, 148, 155, 168, 175, 182, 190]
+        },
+        {
           id: "hyperscaler-capex",
           title: "云厂商 AI capex 指引",
           unit: "指数",
@@ -1490,6 +1501,22 @@
           sources: [
             ["TSMC IR", "https://investor.tsmc.com/chinese/monthly-revenue"],
             ["Yahoo 2330.TW", "https://finance.yahoo.com/quote/2330.TW"]
+          ]
+        },
+        {
+          id: "nvda-market-signal",
+          layer: "chip",
+          trendId: "nvda-stock",
+          title: "Nvidia 股价与市场信号",
+          company: "NVDA",
+          indicator: "股价水平、近期变化率、财报窗口前后的方向",
+          threshold: "财报后大幅回调或持续跌破关键均线,反映市场对 AI 需求叙事的定价转弱",
+          status: "watch",
+          note: "AI 硬件链最核心的市场情绪标的。股价是被动信号,与上方 Nvidia 数据中心指引(基本面)互为印证:价先于量动时尤其值得警惕。",
+          cadence: "每日",
+          sources: [
+            ["Yahoo NVDA", "https://finance.yahoo.com/quote/NVDA"],
+            ["Nvidia IR", "https://investor.nvidia.com/financial-info/financial-reports/default.aspx"]
           ]
         },
         {
@@ -1600,7 +1627,7 @@
     // 绝不进 localStorage / 导出 JSON,否则会污染用户数据并被 mergeTrends 回灌。
     // isLive=null 表示尚未尝试拉取;true=实时采样成功;false=已回退示例数据。
     // 每个 key 对应 /api/trends 里一个实时 trend id。
-    const LIVE_TREND_IDS = ["gpu-rent", "tsmc-stock"];
+    const LIVE_TREND_IDS = ["gpu-rent", "tsmc-stock", "nvda-stock"];
     const liveMeta = Object.fromEntries(
       LIVE_TREND_IDS.map((id) => [id, { isLive: null, updatedAt: null, source: null }])
     );
@@ -1724,20 +1751,56 @@
       return Math.round(hrs / 24) + " 天前";
     }
 
-    // 数据新鲜度 → 语义色档位。采样每 6h 一次,故 >12h(丢两拍)转黄、>24h(丢四拍)转红。
-    // 返回 tone class(复用红/黄/绿语义色)+ 文案,供主图新鲜度标签渲染。
-    const FRESH_WARN_H = 12;
-    const FRESH_STALE_H = 24;
+    // 统计 (from, to] 之间跨越了多少个交易日(周一~周五的自然日),用于日频股票的新鲜度判定。
+    // 关键:日频数据即使周中相邻两天也隔 ~24h,按小时判断必然误报;必须按"交易日"数。
+    // 周末靠星期几自动跳过。注意:不含节假日日历——遇长假可能少报一档,这是刻意的简化
+    // (追节假日要接各市场日历,过度工程;数据源真挂了会连续多个交易日无更新,仍会触发)。
+    function tradingDaysElapsed(fromMs, toMs) {
+      if (!(toMs > fromMs)) return 0;
+      let count = 0;
+      const d = new Date(fromMs);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + 1); // 从 from 的次日开始数
+      const end = new Date(toMs);
+      end.setHours(0, 0, 0, 0);
+      while (d <= end) {
+        const day = d.getDay(); // 0=周日 6=周六
+        if (day !== 0 && day !== 6) count++;
+        d.setDate(d.getDate() + 1);
+      }
+      return count;
+    }
+
+    // 各实时源的新鲜度判定策略:
+    //   clock  —— 按日历小时(高频采样源,如每 6h 的 GPU 租金)
+    //   market —— 按交易日(日频股票,自动跳过周末,避免非交易时段误报)
+    // 未在此登记的实时源默认走 clock 12h/24h。
+    const FRESHNESS_RULES = {
+      "gpu-rent": { mode: "clock", warnH: 12, staleH: 24 },
+      "tsmc-stock": { mode: "market", warnDays: 2, staleDays: 3 },
+      "nvda-stock": { mode: "market", warnDays: 2, staleDays: 3 },
+    };
+
+    // 数据新鲜度 → 语义色档位。返回 tone class(复用红/黄/绿语义色)+ 文案。
     function freshnessInfo(id) {
       const meta = liveMeta[id];
       if (!meta || meta.isLive === null) return null; // 未尝试拉取(如非实时源)
       if (meta.isLive === false) return { tone: "sample", text: "示例数据" };
-      const ageMs = Date.now() - new Date(meta.updatedAt).getTime();
-      if (!Number.isFinite(ageMs)) return { tone: "live", text: "实时采样" };
-      const ageH = ageMs / 3600000;
+      const updatedMs = new Date(meta.updatedAt).getTime();
+      if (!Number.isFinite(updatedMs)) return { tone: "live", text: "实时采样" };
       const rel = relativeTime(meta.updatedAt);
-      if (ageH > FRESH_STALE_H) return { tone: "stale", text: "数据可能中断 · " + rel };
-      if (ageH > FRESH_WARN_H) return { tone: "warn", text: "更新滞后 · " + rel };
+      const rule = FRESHNESS_RULES[id] || { mode: "clock", warnH: 12, staleH: 24 };
+      if (rule.mode === "market") {
+        // 日频股票:数错过了几个交易日。<=1 正常(隔夜/周末),2 滞后,>=3 疑似中断。
+        const days = tradingDaysElapsed(updatedMs, Date.now());
+        if (days >= rule.staleDays) return { tone: "stale", text: "数据可能中断 · " + rel };
+        if (days >= rule.warnDays) return { tone: "warn", text: "更新滞后 · " + rel };
+        return { tone: "live", text: "实时 · " + rel };
+      }
+      // clock 模式:按日历小时
+      const ageH = (Date.now() - updatedMs) / 3600000;
+      if (ageH > rule.staleH) return { tone: "stale", text: "数据可能中断 · " + rel };
+      if (ageH > rule.warnH) return { tone: "warn", text: "更新滞后 · " + rel };
       return { tone: "live", text: "实时 · " + rel };
     }
 

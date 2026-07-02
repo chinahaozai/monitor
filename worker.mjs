@@ -63,18 +63,19 @@ async function fetchVast() {
   return { median: Number(m.toFixed(3)), count: prices.length };
 }
 
-// ---------- 数据源 C:Yahoo Finance TSMC(2330.TW)日频股价时序 ----------
+// ---------- 数据源 C:Yahoo Finance 日频股价时序(通用) ----------
 // 与 gpu-rent 不同,Yahoo 一次给完整历史序列,无需 KV 累积。
 // Cloudflare Cache API 缓存 6h,避免每次页面访问都外呼。
-async function fetchTsmcStock() {
-  const url = "https://query1.finance.yahoo.com/v8/finance/chart/2330.TW?interval=1d&range=3mo";
+// 所有股票信号(TSMC 2330.TW、NVDA…)共用此函数,只换 symbol/source。
+async function fetchYahooStock(symbol, source, decimals = 2) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=3mo`;
   const data = await fetchWithRetry(
     url,
     {
       headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 (compatible; monitor/1.0)" },
       cf: { cacheTtl: 21600, cacheEverything: true }, // 6h 边缘缓存
     },
-    "Yahoo TSMC"
+    `Yahoo ${symbol}`
   );
   const r = data?.chart?.result?.[0];
   const ts = r?.timestamp;
@@ -90,8 +91,8 @@ async function fetchTsmcStock() {
   for (let i = recent.length - 1; i >= 0 && picked.length < 8; i -= step) picked.unshift(recent[i]);
   return {
     labels: picked.map(([t]) => toLabel(new Date(t * 1000).toISOString())),
-    values: picked.map(([, c]) => Number(c.toFixed(2))),
-    source: "Yahoo Finance TSMC 2330.TW 日频",
+    values: picked.map(([, c]) => Number(c.toFixed(decimals))),
+    source,
     updatedAt: new Date(recent[recent.length - 1][0] * 1000).toISOString(),
   };
 }
@@ -192,14 +193,16 @@ export default {
 
     if (url.pathname === "/api/trends") {
       try {
-        // 两源并发:gpu-rent 从 KV(6h 采样累积)、tsmc-stock 从 Yahoo(边缘缓存)
-        // 任一失败不影响另一个,前端会静默降级到该 trend 的示例数据。
-        const [history, tsmc] = await Promise.all([
+        // 多源并发:gpu-rent 从 KV(6h 采样累积),股票类从 Yahoo(边缘缓存)。
+        // 任一失败不影响其它源,前端会静默降级到该 trend 的示例数据。
+        const [history, tsmc, nvda] = await Promise.all([
           loadHistory(env),
-          fetchTsmcStock().catch(() => null),
+          fetchYahooStock("2330.TW", "Yahoo Finance TSMC 2330.TW 日频", 0).catch(() => null),
+          fetchYahooStock("NVDA", "Yahoo Finance NVDA 日频", 2).catch(() => null),
         ]);
         const payload = { ...buildTrends(history) };
         if (tsmc) payload["tsmc-stock"] = tsmc;
+        if (nvda) payload["nvda-stock"] = nvda;
         return new Response(JSON.stringify(payload), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
