@@ -164,11 +164,23 @@ async function sample(env) {
 }
 
 // ---------- 组装 /api/trends 响应 ----------
+// 日频 label:股票用,一天一个点,MM-DD 足够
 function toLabel(iso) {
   const d = new Date(iso);
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${mm}-${dd}`;
+}
+
+// 时级 label:GPU 租金用,6h 采样一天 4 个点,MM-DD 会全一样,必须精确到小时。
+// 时区:输出中国时区(+8),用户在中国看到本地时间直接对得上;Worker 环境是 UTC,
+// 手动加 8h 偏移,再取 UTC 各字段(避免依赖 Intl.DateTimeFormat 在 Worker 里的实现差异)。
+function toLabelHour(iso) {
+  const d = new Date(new Date(iso).getTime() + 8 * 3600000);
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  return `${mm}-${dd} ${hh}:00`;
 }
 
 function buildTrends(points) {
@@ -177,13 +189,17 @@ function buildTrends(points) {
   const shown = points.length > 8 ? points.slice(-8) : points;
   return {
     "gpu-rent": {
-      labels: shown.map((p) => toLabel(p.t)),
+      labels: shown.map((p) => toLabelHour(p.t)),
       values: shown.map((p) => p.value),
       source: "Vast.ai / RunPod H100 实时采样",
       updatedAt: points[points.length - 1].t,
     },
   };
 }
+
+// AI 分析(DeepSeek)已迁移到前端 BYOK 直调,详见 public/index.html。
+// 原因:DeepSeek API 走腾讯 EdgeOne,对海外来源(Cloudflare Worker)极慢(20s 仍超时),
+// 而对中国用户浏览器直接命中很快。前端直调 + localStorage 存 key 是唯一可用架构。
 
 // ---------- HTTP 入口 ----------
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };

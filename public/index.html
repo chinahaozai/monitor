@@ -870,6 +870,237 @@
     @media (max-width: 720px) {
       .tier-countdown { display: none; }
     }
+
+    /* AI 分析按钮:靛蓝品牌色,放在 section-head 右侧 */
+    .analyze-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(79, 70, 229, 0.32);
+      background: linear-gradient(180deg, rgba(79, 70, 229, 0.10), rgba(79, 70, 229, 0.05));
+      color: var(--accent);
+      font-family: var(--font-display);
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.18s ease, transform 0.12s ease;
+    }
+    .analyze-btn:hover { background: linear-gradient(180deg, rgba(79, 70, 229, 0.16), rgba(79, 70, 229, 0.08)); }
+    .analyze-btn:active { transform: translateY(1px); }
+    .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .analyze-btn i { width: 14px; height: 14px; }
+    /* 齿轮按钮:方形只装图标,尺寸与主按钮对齐 */
+    .analyze-btn-icon { padding: 6px 8px; }
+
+    /* AI 设置弹窗:遮罩 + 居中卡片 */
+    .ai-settings-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(15, 23, 42, 0.35);
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+    .ai-settings-dialog {
+      background: var(--surface);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      width: min(440px, calc(100vw - 32px));
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .ai-settings-dialog h3 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .ai-settings-desc {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .ai-settings-desc a { color: var(--accent); text-decoration: none; }
+    .ai-settings-desc a:hover { text-decoration: underline; }
+    .ai-settings-current {
+      margin: 0; font-size: 12px; color: var(--ink-2);
+    }
+    .ai-settings-current code {
+      font-family: var(--font-mono);
+      background: rgba(148, 163, 184, 0.10);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    #aiKeyInput {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    #aiKeyInput:focus { border-color: var(--accent); }
+    .ai-settings-actions {
+      display: flex; gap: 8px; justify-content: flex-end;
+      margin-top: 4px;
+    }
+    .ai-btn-primary, .ai-btn-secondary {
+      padding: 6px 14px;
+      font-family: var(--font-display);
+      font-size: 12.5px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-2);
+      transition: background 0.15s ease;
+    }
+    .ai-btn-primary {
+      background: var(--accent); color: white; border-color: var(--accent);
+    }
+    .ai-btn-secondary:hover { background: rgba(148, 163, 184, 0.10); }
+    .ai-btn-primary:hover { background: #4338ca; border-color: #4338ca; }
+
+    /* AI 分析结果面板:嵌入信号区上方,不遮挡内容 */
+    .analysis-panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .analysis-panel[data-state="loading"] { border-color: rgba(79, 70, 229, 0.32); }
+    .analysis-panel[data-state="error"] { border-color: rgba(220, 38, 38, 0.32); background: rgba(220, 38, 38, 0.03); }
+    .analysis-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .analysis-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .analysis-state.state-weakening { color: var(--red); background: rgba(220, 38, 38, 0.08); border: 1px solid rgba(220, 38, 38, 0.28); }
+    .analysis-state.state-continuing { color: var(--green); background: rgba(5, 150, 105, 0.08); border: 1px solid rgba(5, 150, 105, 0.28); }
+    .analysis-state.state-gray { color: var(--muted); background: rgba(148, 163, 184, 0.10); border: 1px solid var(--line); }
+    .analysis-score {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .analysis-score-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .analysis-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .analysis-close:hover { background: rgba(148, 163, 184, 0.10); color: var(--text); }
+    .analysis-section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .analysis-section-title {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+    .analysis-section-body {
+      font-size: 13.5px;
+      color: var(--ink-2);
+      line-height: 1.55;
+    }
+    .analysis-blind {
+      padding: 10px 12px;
+      background: rgba(217, 119, 6, 0.06);
+      border-left: 2px solid var(--amber);
+      border-radius: 4px;
+      font-size: 12.5px;
+      color: var(--ink-2);
+    }
+    .analysis-disclaimer {
+      font-size: 11.5px;
+      color: var(--muted);
+      font-style: italic;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+    }
+    .analysis-loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 12px 0;
+    }
+    .analysis-loading::before {
+      content: "";
+      width: 14px; height: 14px;
+      border: 2px solid var(--line);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .analysis-error {
+      color: var(--red);
+      font-size: 13px;
+    }
+    .analysis-breakdown {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+    }
+    .analysis-breakdown-item {
+      padding: 8px 10px;
+      background: rgba(148, 163, 184, 0.05);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .analysis-breakdown-tier {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+    .analysis-breakdown-val {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
     /* 各 tier 的强调色梯度:T0 靛蓝最重,T4 灰化最轻 */
     .tier-T0 .tier-badge { background: linear-gradient(180deg, rgba(79, 70, 229, 0.14), rgba(79, 70, 229, 0.07)); border-color: rgba(79, 70, 229, 0.32); }
     .tier-T4 .tier-badge { background: rgba(148, 163, 184, 0.10); border-color: var(--line); color: var(--muted); }
@@ -1464,6 +1695,13 @@
         <h2>信号清单</h2>
         <span class="rule"></span>
         <span class="sub" id="visibleLabelBig"></span>
+        <button id="analyzeBtn" class="analyze-btn" type="button" title="用 DeepSeek 分析当前信号,基于 FRAMEWORK 权重表判读(需自备 API key)">
+          <i data-lucide="sparkles"></i>
+          <span>AI 分析</span>
+        </button>
+        <button id="aiSettingsBtn" class="analyze-btn analyze-btn-icon" type="button" title="设置 DeepSeek API key">
+          <i data-lucide="settings"></i>
+        </button>
       </div>
 
       <section class="filters" aria-label="筛选">
@@ -1488,6 +1726,8 @@
         </select>
         <input id="reviewDate" type="date" aria-label="下次复盘日期">
       </section>
+
+      <section id="analysisPanel" class="analysis-panel" hidden aria-label="AI 分析结果"></section>
 
       <div class="layout">
         <section class="signal-grid" id="signalGrid" aria-label="信号卡片"></section>
@@ -2668,6 +2908,282 @@
       renderTrends();
     }
     hydrateFromApi();
+
+    // ---------- AI 分析(浏览器 BYOK 直调 DeepSeek)----------
+    // 架构:key 存 localStorage,浏览器直调 DeepSeek API,Worker 不介入。
+    // 为什么:DeepSeek 走腾讯 EdgeOne,对海外来源(CF Worker)慢到 20s+ 超时;
+    // 而中国浏览器直接命中边缘节点,~1s 完成。这是当前唯一可用架构。
+    const DEEPSEEK_KEY_STORAGE = "ai-signal-monitor:deepseek-key";
+
+    // FRAMEWORK 摘要 —— 与 FRAMEWORK.md 第 2、3 章保持同步。更新 FRAMEWORK.md 时必须同步这里。
+    const FRAMEWORK_SUMMARY = `## FRAMEWORK 权重表(第 2 章)
+- T0(权重~50%):四大云厂商 capex 指引(MSFT/META/GOOG/AMZN,30%) + NVDA 数据中心指引(20%)。最领先,一年 4 次财报窗口。
+- T1(权重~25%):TSMC 月营收(15%) + HBM 供需(10%)。上游代工与瓶颈部件的领先信号。
+- T2(权重~15%):GPU 云租金(10%) + AMD/AVGO 指引(5%)。算力供需即时反馈 + 二线芯片同步印证。
+- T3(权重~5%):光模块 + PCB 服务器订单。中游传导,同步。
+- T4(权重~5%):股价(NVDA/TSM) + A股业绩。最滞后,受叙事绑架大。
+
+## 三态判定(第 3 章,必须严格套用)
+### 状态 A "确认转弱":同时满足以下至少 3 条
+1. 需求侧刹车:MSFT/META/GOOG/AMZN 任两家出现 "digest capacity" "optimize spend" "moderate growth rate" "demand normalization"
+2. 上游代工减速:TSMC 月营收同比从 +30%~+40% 掉到 +15% 以下且连续 2 个月
+3. 算力过剩:GPU 云租金连续 6 周下跌 + Vast.ai 可租库存增加(两条件同时)
+4. 芯片核心确认:NVDA 下季度指引低于市场预期 5%+,或首次出现 "customer concentration" 担忧
+5. HBM 松动:"HBM sold out through 2026" 措辞消失,或出现 "pricing pressure"
+
+### 状态 B "确认继续":同时满足至少 3 条
+1. 云厂商 capex 上修,或强调 "capacity constrained"
+2. TSMC 月营收同比 +25% 以上,CoWoS 扩产持续
+3. GPU 租金稳定或上涨,新代 GPU(B200/GB200)溢价
+4. NVDA/AMD/AVGO 三家至少两家下季度指引超预期
+5. HBM 价格上涨或产能预售到 2027 年
+
+### 状态 C "灰色区间":上面两组各只触发 1-2 条(混合信号) / 股价与基本面背离 / 单一信号无印证 / 重大事件前
+
+## 权重打分方法
+0-100 分,基于当前信号相对权重表贡献加权:
+- 每个 tier 满分 = 该 tier 权重
+- 若该 tier 信号确认"继续"贡献满权重,"转弱"贡献负权重(取相反数),"灰色"贡献半权重
+- 总分 = 50 + (加权贡献之和) / 2,截断到 0-100`;
+
+    const SYSTEM_PROMPT = `你是 AI 硬件景气度信号分析助手,任务是根据用户提供的实时数据 + 下方 FRAMEWORK 框架,给出**一次结构化判读**。这不是投资建议,是给用户提供参考视角。
+
+## 硬约束(违反任一条,输出无效)
+1. **只使用用户 message 里明确提供的信息**。禁止引用未提供的数据(如 OpenAI 用量、Azure 收入、你训练数据中的历史事件、任何猜测)。若某类信号缺失,必须在 blind_spots 明确写"该类信号缺失"而非脑补。
+2. **必须引用 FRAMEWORK 权重表和三态判定的原文**作为判断依据。state_reason 要写"根据 FRAMEWORK 状态 X 判定,当前触发第 N 条(具体条件描述),未触发其它条(说明原因)"。
+3. **输出必须是严格 JSON**,严格符合下方 schema,不允许 JSON 外任何文本、不允许 markdown 包裹。
+4. **每个判断必须附具体理由**,不允许 "值得关注""应留意" 这类无信息量措辞。理由要引用具体信号 id 和数值。
+
+${FRAMEWORK_SUMMARY}
+
+## 输出 JSON schema(严格遵守)
+{
+  "state": "confirmed_weakening" | "confirmed_continuing" | "gray_zone",
+  "state_reason": "引用 FRAMEWORK 第 3 章,写触发条件与未触发条件(具体到条数与理由)",
+  "score": 0-100 的整数,
+  "score_breakdown": [
+    {"tier": "T0", "weight": 50, "contribution": 数字, "basis": "该 tier 信号具体状态与推理"}
+  ],
+  "signals_confirming": [{"signal_ids": ["a", "b"], "reason": "互相印证的具体原因"}],
+  "signals_conflicting": [{"signal_ids": ["a", "b"], "reason": "互相矛盾的具体表现"}],
+  "watching": "下一个应观察的具体事件(如 'NVDA 下季财报电话会措辞是否延续 capacity constrained')",
+  "blind_spots": "本次分析未覆盖的关键数据(必填,如 '需求侧 OpenAI 用量数据缺失,capex 具体数字仅有状态无金额')",
+  "disclaimer": "本分析基于 N 个信号,遗漏了 X, Y。不构成投资建议,仅供参考。"
+}`;
+
+    // 组装用户 message:把当前 state 转成 AI 好读的文本
+    function buildAnalysisPrompt() {
+      const today = new Date().toISOString().slice(0, 10);
+      const lines = [`# 当前信号快照(${today})\n\n## 实时数据(自动采样)`];
+      state.trends.forEach((t) => {
+        if (!Array.isArray(t.values) || !t.values.length) return;
+        const vals = t.values;
+        const last = vals[vals.length - 1];
+        const first = vals[0];
+        const chg = first ? ((last / first - 1) * 100).toFixed(1) : "n/a";
+        const recent = vals.slice(-4).join(", ");
+        const upd = liveMeta[t.id]?.updatedAt || "手动/示例";
+        lines.push(`- ${t.id} (${t.title}): 末值=${last} ${t.unit || ""}, 区间变化=${chg}%, 近 4 点=[${recent}], updatedAt=${upd}`);
+      });
+      lines.push("\n## 分层信号(用户维护 + 状态)");
+      const tiers = { T0: [], T1: [], T2: [], T3: [], T4: [] };
+      state.signals.forEach((s) => (tiers[s.tier] || tiers.T4).push(s));
+      for (const [tier, items] of Object.entries(tiers)) {
+        if (!items.length) continue;
+        lines.push(`### ${tier}`);
+        items.forEach((s) => {
+          const noteText = s.note ? ` note="${s.note.slice(0, 300)}"` : "";
+          lines.push(`- ${s.id} [${s.status}] ${s.title} (${s.company})${noteText}`);
+        });
+      }
+      const ne = nextEarnings();
+      if (ne) lines.push(`\n## 下一个财报窗口\n- ${ne.company} · ${ne.daysLeft} 天后`);
+      lines.push("\n请严格按 system prompt 的 JSON schema 输出判读。");
+      return lines.join("\n");
+    }
+
+    // 打开设置弹窗填 API key
+    function openAiSettings() {
+      const currentKey = localStorage.getItem(DEEPSEEK_KEY_STORAGE) || "";
+      const masked = currentKey ? currentKey.slice(0, 4) + "····" + currentKey.slice(-4) : "";
+      const dialog = document.createElement("div");
+      dialog.className = "ai-settings-overlay";
+      dialog.innerHTML = `
+        <div class="ai-settings-dialog">
+          <h3>DeepSeek API 设置</h3>
+          <p class="ai-settings-desc">Key 存在你自己浏览器的 localStorage 里,不发送到本项目 Worker。<br>
+             获取: <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer">platform.deepseek.com/api_keys</a> · 单次分析约 0.001 元</p>
+          ${currentKey ? `<p class="ai-settings-current">当前 key: <code>${escapeHtml(masked)}</code></p>` : ""}
+          <input type="password" id="aiKeyInput" placeholder="sk-..." autocomplete="off" />
+          <div class="ai-settings-actions">
+            ${currentKey ? '<button type="button" data-action="clear-key" class="ai-btn-secondary">清除</button>' : ""}
+            <button type="button" data-action="cancel-key" class="ai-btn-secondary">取消</button>
+            <button type="button" data-action="save-key" class="ai-btn-primary">保存</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(dialog);
+      const input = dialog.querySelector("#aiKeyInput");
+      setTimeout(() => input.focus(), 50);
+      dialog.addEventListener("click", (e) => {
+        const action = e.target.dataset.action;
+        if (action === "save-key") {
+          const val = input.value.trim();
+          if (!val) { input.focus(); return; }
+          localStorage.setItem(DEEPSEEK_KEY_STORAGE, val);
+          dialog.remove();
+        } else if (action === "clear-key") {
+          localStorage.removeItem(DEEPSEEK_KEY_STORAGE);
+          dialog.remove();
+        } else if (action === "cancel-key" || e.target === dialog) {
+          dialog.remove();
+        }
+      });
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") dialog.querySelector('[data-action="save-key"]').click();
+        if (e.key === "Escape") dialog.remove();
+      });
+    }
+
+    async function runAnalysis() {
+      const key = localStorage.getItem(DEEPSEEK_KEY_STORAGE);
+      if (!key) {
+        openAiSettings();
+        return;
+      }
+      const btn = document.getElementById("analyzeBtn");
+      const panel = document.getElementById("analysisPanel");
+      btn.disabled = true;
+      panel.hidden = false;
+      panel.dataset.state = "loading";
+      panel.innerHTML = `<div class="analysis-loading">正在调用 DeepSeek 分析当前信号…通常几秒内完成</div>`;
+
+      try {
+        const t0 = performance.now();
+        const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + key,
+          },
+          body: JSON.stringify({
+            model: "deepseek-v4-flash",
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: buildAnalysisPrompt() },
+            ],
+            temperature: 0.3,
+            max_tokens: 4000,
+            response_format: { type: "json_object" },
+          }),
+        });
+        const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          const hint = res.status === 401 ? " (API key 无效,点右上齿轮重设)"
+                     : res.status === 429 ? " (触发限流,稍后重试)"
+                     : "";
+          throw new Error(`DeepSeek HTTP ${res.status}${hint}: ${errText.slice(0, 200)}`);
+        }
+        const data = await res.json();
+        const choice = data?.choices?.[0];
+        const content = choice?.message?.content;
+        if (!content) {
+          const finish = choice?.finish_reason || "?";
+          throw new Error(`DeepSeek 返回内容为空 (finish=${finish})`);
+        }
+        let analysis;
+        try { analysis = JSON.parse(content); }
+        catch { throw new Error("DeepSeek 返回非 JSON: " + content.slice(0, 200)); }
+        renderAnalysis(analysis, data.usage, elapsed);
+      } catch (err) {
+        panel.dataset.state = "error";
+        panel.innerHTML = `
+          <div class="analysis-head">
+            <span class="analysis-state state-gray">分析失败</span>
+            <button class="analysis-close" data-action="close-analysis">×</button>
+          </div>
+          <div class="analysis-error">${escapeHtml(String(err.message || err))}</div>
+          <div class="analysis-section-body">若是 key 问题,点右上齿轮重设。若是网络问题,稍后重试。</div>
+        `;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function renderAnalysis(a, usage, elapsed) {
+      const panel = document.getElementById("analysisPanel");
+      panel.dataset.state = "ok";
+      const stateMap = {
+        confirmed_weakening: { cls: "state-weakening", label: "● 状态 A · 确认转弱" },
+        confirmed_continuing: { cls: "state-continuing", label: "● 状态 B · 确认继续" },
+        gray_zone: { cls: "state-gray", label: "● 状态 C · 灰色区间" },
+      };
+      const st = stateMap[a.state] || stateMap.gray_zone;
+
+      const breakdown = Array.isArray(a.score_breakdown) ? a.score_breakdown.map((b) => `
+        <div class="analysis-breakdown-item" title="${escapeHtml(b.basis || "")}">
+          <span class="analysis-breakdown-tier">${escapeHtml(b.tier || "")} · 权重 ${b.weight ?? "?"}</span>
+          <span class="analysis-breakdown-val">${b.contribution >= 0 ? "+" : ""}${b.contribution ?? "?"}</span>
+        </div>
+      `).join("") : "";
+
+      const confirming = Array.isArray(a.signals_confirming) && a.signals_confirming.length
+        ? a.signals_confirming.map((c) => `<li>${escapeHtml((c.signal_ids || []).join(" + "))} — ${escapeHtml(c.reason || "")}</li>`).join("")
+        : "<li>无</li>";
+      const conflicting = Array.isArray(a.signals_conflicting) && a.signals_conflicting.length
+        ? a.signals_conflicting.map((c) => `<li>${escapeHtml((c.signal_ids || []).join(" ↔ "))} — ${escapeHtml(c.reason || "")}</li>`).join("")
+        : "<li>无</li>";
+
+      const usageText = usage
+        ? ` · ${usage.prompt_tokens || "?"} in / ${usage.completion_tokens || "?"} out${elapsed ? " · " + elapsed + "s" : ""}`
+        : elapsed ? ` · ${elapsed}s` : "";
+
+      panel.innerHTML = `
+        <div class="analysis-head">
+          <span class="analysis-state ${st.cls}">${st.label}</span>
+          <div>
+            <span class="analysis-score">${a.score ?? "?"}</span>
+            <span class="analysis-score-label">/100 景气度</span>
+          </div>
+          <span class="analysis-score-label" style="margin-left:auto;">DeepSeek v4-flash${escapeHtml(usageText)}</span>
+          <button class="analysis-close" data-action="close-analysis">×</button>
+        </div>
+        <div class="analysis-section">
+          <span class="analysis-section-title">判定理由</span>
+          <div class="analysis-section-body">${escapeHtml(a.state_reason || "")}</div>
+        </div>
+        ${breakdown ? `
+        <div class="analysis-section">
+          <span class="analysis-section-title">评分拆解</span>
+          <div class="analysis-breakdown">${breakdown}</div>
+        </div>` : ""}
+        <div class="analysis-section">
+          <span class="analysis-section-title">互相印证</span>
+          <div class="analysis-section-body"><ul style="margin:0;padding-left:18px;">${confirming}</ul></div>
+        </div>
+        <div class="analysis-section">
+          <span class="analysis-section-title">互相矛盾</span>
+          <div class="analysis-section-body"><ul style="margin:0;padding-left:18px;">${conflicting}</ul></div>
+        </div>
+        <div class="analysis-section">
+          <span class="analysis-section-title">下一个应观察</span>
+          <div class="analysis-section-body">${escapeHtml(a.watching || "")}</div>
+        </div>
+        <div class="analysis-blind">
+          <strong>信息盲区:</strong> ${escapeHtml(a.blind_spots || "")}
+        </div>
+        <div class="analysis-disclaimer">${escapeHtml(a.disclaimer || "本分析仅供参考,不构成投资建议。")}</div>
+      `;
+    }
+
+    document.getElementById("analyzeBtn").addEventListener("click", runAnalysis);
+    document.getElementById("aiSettingsBtn").addEventListener("click", openAiSettings);
+    document.getElementById("analysisPanel").addEventListener("click", (e) => {
+      if (e.target.closest('[data-action="close-analysis"]')) {
+        document.getElementById("analysisPanel").hidden = true;
+      }
+    });
   </script>
 </body>
 </html>
